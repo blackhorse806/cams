@@ -1,0 +1,454 @@
+{% extends "layouts/master.twig" %}
+
+{% block js %}
+<script>
+	var g_data = null;
+	var g_lock = false;
+	var g_has_changed = false;
+
+	window.onbeforeunload = function(event) {
+		if (g_has_changed)
+	    	return "You have unsaved changes. Are you sure you want to navigate away?";
+	};
+
+	$(document).ready(function(){
+		pull_data();
+	});
+
+	function pull_data() {
+		$.ajax({
+			url: '{{ urlFor('/variation/get/section3-3', { "variation_id" : variation_id }) }}',
+			method: "GET",
+			dataType: "text",
+			success: function(result) {
+				if (result != null && result != "0 results") {
+					g_data = JSON.parse(result);
+					populate_form(format_data_for_form(g_data));
+					console.log(g_data);
+				}
+			}
+		});
+	}
+
+	function format_data_for_form(data) {
+		var result = {
+			"id": data.id,
+		    "d33": {
+				"equivalent_learning_experience": data.equivalent_learning_experience
+			},
+		    "d34": data.readings,
+		    "d36": {
+				"non_university_facilities": data.non_university_facilities,
+				"a": {
+					"clinical_placement": data.clinical_placement,
+					"industrial_experience": data.industrial_experience,
+					"practice_teaching": data.practice_teaching,
+					"other_educational_activities": data.other_educational_activities,
+					"internships": data.internships,
+					"teach_external_partner": data.teach_external_partner,
+					"external_monitor_activities": data.external_monitor_activities,
+					"external_delivery_arrangements": data.external_delivery_arrangements,
+				},
+			}
+		};
+		return result;
+	}
+
+	function populate_form(data) {
+		$("#form1").html("");
+		$("#form1").alpaca({
+			"data": data,
+			"schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"title": "ID"
+					},
+					"d33": {
+						"title": "D3.3 Equivalent Student Learning Experience across Learning Environments",
+						"type": "object",
+						"properties": {
+							"equivalent_learning_experience": {
+								"type": "string",
+								"title": "Where there are variations in learning environments, please identify the strategy for ensuring an academically equivalent student experience and outcomes."
+							}
+						}
+					},
+					"d34": {
+						"title": "D3.4 Prescribed Unit text & D3.5 Library resources",
+						"type": "array",
+						"items": {
+							"type": "object",
+							"properties": {
+								"id": {
+									"type": "string",
+									"title": "ID"
+								},
+								"resource_type": {
+									"type": "string",
+									"title": "Resource Type",
+									"enum": {{ reading_types|json_encode|raw }}
+								},
+								"reference": {
+									"type": "string",
+									"title": "Reference"
+								}
+							}
+						}
+					},
+					"d36": {
+						"title": "D3.6	Supply of facilities/resources from other organisations",
+						"type": "object",
+						"properties": {
+							"non_university_facilities": {
+								"type": "string",
+								"title": "Use of non-University premises or facilities:",
+								"enum": ["0", "1"]
+							},
+							"a": {
+								"type": "object",
+								"properties": {
+									"clinical_placement": {
+										"type": "string",
+										"title": "a. Please indicate the type of activity provided by the other organisation:<br>clinical placement",
+										"enum": ["0", "1"]
+									},
+									"industrial_experience": {
+										"type": "string",
+										"title": "industrial experience",
+										"enum": ["0", "1"]
+									},
+									"practice_teaching": {
+										"type": "string",
+										"title": "practice teaching",
+										"enum": ["0", "1"]
+									},
+									"other_educational_activities": {
+										"type": "string",
+										"title": "other educational activities",
+										"enum": ["0", "1"]
+									},
+									"internships": {
+										"type": "string",
+										"title": "internships",
+										"enum": ["0", "1"]
+									},
+									"teach_external_partner": {
+										"type": "string",
+										"title": "teaching by external partner",
+										"enum": ["0", "1"]
+									},
+									"external_monitor_activities": {
+										"type": "string",
+										"title": "b. Please provide details of how the teaching and learning activities are to be monitored by the University’s staff."
+									},
+									"external_delivery_arrangements": {
+										"type": "string",
+										"title": "c. Please provide details of any arrangements for the academic staff of other institutions to deliver the University Unit and how their teaching activities are to be monitored by the University staff responsible for the Unit."
+									},
+								},
+							},
+
+						},
+						"dependencies": {
+							"a": ["non_university_facilities"],
+						},
+					}
+				}
+			},
+			"toolbarSticky": true,
+			"options": {
+				"events": {
+                    "change": function() {
+						g_has_changed = true;
+                        console.log("Change");
+                    }
+				},
+				"fields": {
+					"id": {
+						"type": "hidden"
+					},
+					"d33": {
+						"helpers": [
+							"Academically equivalent learning experiences ensure that each learning mode or campus location gives students the same opportunity to meet the learning outcomes of a course or unit, and they are assessed to the same academic standards."
+						],
+						"fields": {
+							"equivalent_learning_experience": {
+								"type": "textarea"
+							}
+						}
+					},
+					"b": {
+						"helpers": [
+							"Note:  For international students studying by distance and/or online, refer to information on <a href='http://www.uws.edu.au/about_uws/uws/governance/education_services_for_overseas_students_esos' target='_blank'>ESOS compliance</a>."
+						],
+						"fields": {
+							"unit_international_available": {
+								"type": "select",
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+							},
+							"international_unit_offering": {
+								"type": "textarea",
+								"dependencies": {
+				                    "unit_international_available": "1"
+				                }
+							}
+						}
+					},
+					"d34": {
+						"helpers": [
+							"The Library provides a range of resources and services to assist the University staff in developing their reading lists. Please contact your <a href='http://library.westernsydney.edu.au/main/help/contact-us/school-librarians' target='_blank'>School Liaison Librarian</a> for ongoing support.  For the College at Nirimba, please contact the ‘Campus Librarian, Nirimba’.  The library also provides face-to-face and online support for staff at <a href='http://library.westernsydney.edu.au/main/guides/resources-for-teaching' target='_blank'>http://library.westernsydney.edu.au/main/guides/resources-for-teaching</a>",
+							"Prescribed Unit text<br><ul class='help-block'><li>The prescribed Unit textbook is a textbook that all enrolled students are expected to purchase.</li><li>Note: For the prescribed Unit textbook that students are expected to purchase (unless available as an e-book), the library will only hold one copy per campus where the Unit is taught. Contact the University Books Text Buyer to ensure that appropriate stock can be made available for students to purchase at the relevant Campus Bookshops.</li></ul>",
+							"Essential readings<br><ul class='help-block'><li>Specify the essential texts or other learning resources for the Unit. For texts, you must provide the full author, title and publication details. </li><li>Essential readings are books, articles and electronic resources that the student must consult in order to fulfil the learning objectives of the Unit, and which will be made available by the Library. If the Library is unable to access a text they will contact you for an alternative.</li><li>What are the essential texts or other essential learning resources for the Unit, which the Library will hold?</li></ul>",
+							"Additional readings<br><ul class='help-block'><li>Identify the key additional information sources which will need to be held by the University for effective conduct of this Unit, and specify required campus location if the information source is not available electronically. Where a source is not recent, provide a reason for inclusion.</li><li>Note: Essential and additional readings make up reading lists. The reading lists will be included in the Unit Outline and where View Designer access is granted to Library staff, loaded to the Unit’s vUWS. The Library makes every effort to acquire all items that appear on reading lists. If not they will contact you for an alternative.</li><li>Please list the information resources which will be included in the additional readings list for the Unit. Specify the required campus location if the information source is not available electronically. Where a resource is not recent, provide a reason for inclusion in the reading list. The library will advise if an alternative reading is required (e.g. if a resource is no longer available).</li></ul>",
+						],
+						"type": "table",
+						"items": {
+							"fields": {
+								"id": {
+									"type": "hidden"
+								},
+								"reference": {
+									"type": "textarea",
+									"rows": 2,
+									"size": 75
+								},
+								"resource_type": {
+		                    		"type": "select",
+		                		}
+							}
+						},
+						"actionbar": {
+							 "actions": [{
+								 "action": "add",
+								 "click": function() {
+									var value = this.getValue();
+									value.push({
+									});
+									this.setValue(value);
+								}
+							 }, {
+								 "action": "remove"
+							 }, {
+								 "action": "up",
+								 "enabled": false
+							 }, {
+								 "action": "down",
+								 "enabled": false
+							 }]
+						}
+					},
+					"d36": {
+						"helpers": [
+							"Note that Schools may not enter agreements with other organisations independently. Any agreement must be formally approved by the University Executive and Academic Senate. The scope of approval includes the use of staff, premises or facilities for clinical placement, industrial experience, practice teaching, or other educational activities and internships. ",
+							"If facilities from other organisations are to be used, you must provide details of how the teaching and facilities will be monitored by the University staff.",
+						],
+						"fields": {
+							"non_university_facilities": {
+								"type": "select",
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+							},
+							"a": {
+								"helpers": [
+									"Please provide details of any contractual or other arrangements in agreement for the use of facilities and/or staff belonging to other organisations, (e.g. for provision of practical or clinical experience, or for teaching at overseas locations)."
+								],
+								"fields": {
+									"clinical_placement": {
+										"type": "select",
+										"optionLabels": ["No", "Yes"],
+										"removeDefaultNone": true,
+									},
+									"industrial_experience": {
+										"type": "select",
+										"optionLabels": ["No", "Yes"],
+										"removeDefaultNone": true,
+									},
+									"practice_teaching": {
+										"type": "select",
+										"optionLabels": ["No", "Yes"],
+										"removeDefaultNone": true,
+									},
+									"other_educational_activities": {
+										"type": "select",
+										"optionLabels": ["No", "Yes"],
+										"removeDefaultNone": true,
+									},
+									"internships": {
+										"type": "select",
+										"optionLabels": ["No", "Yes"],
+										"removeDefaultNone": true,
+									},
+									"teach_external_partner": {
+										"type": "select",
+										"optionLabels": ["No", "Yes"],
+										"removeDefaultNone": true,
+									},
+									"external_monitor_activities": {
+										"type": "textarea"
+									},
+									"external_delivery_arrangements": {
+										"type": "textarea"
+									}
+								},
+								"dependencies": {
+									"non_university_facilities": "1"
+								}
+							}
+						}
+					}
+				},
+				"form": {
+				   "buttons": {
+					   "submit": {
+						   "title": "Save",
+						   "click": save
+					   }
+				   }
+			   }
+		   },
+			"postRender": function(control) {
+				$('[data-key="submit"]').addClass("btn-primary");
+				$('[data-alpaca-container-item-name="d34"]').addClass("alpaca-field-object");
+				$('[data-alpaca-container-item-name="c"]').addClass("alpaca-field-object");
+				// for (var i = 0; i < 100; i++) {
+					// $('[name="_' + i + '_number"]').width(17);
+					// $('[data-alpaca-container-item-name="_' + i + '_weight"]').width(50);
+					// $('[data-alpaca-container-item-name="_' + i + '_ulos"]').width(100);
+					// $('[data-alpaca-container-item-name="_' + i + '_threshold"]').width(80);
+					// $('[data-alpaca-container-item-name="_' + i + '_type"]').width(105);
+				// }
+				$('[data-header-id="resource_type"]').width(170);
+
+				$(".actionbar").width(80);
+			}
+		});
+	}
+
+	function find_deleted(loaded, modified) {
+		var deleted = [];
+		if (loaded != null) {
+			for (var i = 0; i < loaded.length; i++) {
+				var find_id = loaded[i].id
+				var found = false;
+				for (var j = 0; j < modified.length; j++) {
+					if (modified[j].id == find_id) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					deleted.push(find_id);
+				}
+			}
+		}
+		return deleted;
+	}
+
+	function save() {
+		if (g_lock){
+			return;
+		}
+		g_lock = true;
+		$(".alpaca-form-button-submit").addClass("disabled");
+		$(".alpaca-form-button-submit").html("Saving...");
+
+		var data = $("#form1").alpaca().getValue();
+		console.log(JSON.stringify(data));
+
+		var deleted = find_deleted(g_data.readings, data.d34);
+
+		g_data.id = data.id;
+		g_data.equivalent_learning_experience = data.d33.equivalent_learning_experience;
+		g_data.non_university_facilities = data.d36.non_university_facilities;
+		if (data.d36.a) {
+			g_data.clinical_placement = data.d36.a.clinical_placement;
+			g_data.industrial_experience = data.d36.a.industrial_experience;
+			g_data.practice_teaching = data.d36.a.practice_teaching;
+			g_data.other_educational_activities = data.d36.a.other_educational_activities;
+			g_data.internships = data.d36.a.internships;
+			g_data.teach_external_partner = data.d36.a.teach_external_partner;
+			g_data.external_monitor_activities = data.d36.a.external_monitor_activities;
+			g_data.external_delivery_arrangements = data.d36.a.external_delivery_arrangements;
+		}
+		g_data.readings = data.d34;
+
+		// Replace undefined values with empty string
+		for (var variable in g_data) {
+			if (g_data.hasOwnProperty(variable)) {
+				if (typeof g_data[variable] === 'undefined') {
+					g_data[variable] = "";
+				}
+			}
+		}
+
+		console.log(g_data);
+
+		console.log(deleted);
+
+		$.ajax({
+			url: '{{ urlFor('/variation/put/section3-3', { "variation_id" : variation_id }) }}',
+			dataType: 'text',
+			data: {data : JSON.stringify(g_data), delete : JSON.stringify(deleted)},
+			type: 'POST',
+			success: function(data){
+				console.log(data);
+				if (data=="success") {
+					//$('html, body').animate({scrollTop: $("body").offset().top},200);
+					$('#submitted').hide();
+					$('#submitted').fadeIn(1000);
+					setTimeout(function() {
+						$('#submitted').fadeOut(2000);
+					}, 2000);
+					pull_data();
+					g_has_changed = false;
+				} else {
+					alert("Error: Could not save.\nMessage: " + data);
+				}
+				$(".alpaca-form-button-submit").removeClass("disabled");
+				$(".alpaca-form-button-submit").html("Save");
+				g_lock = false;
+			}
+		});
+	}
+</script>
+{% endblock %}
+
+{% block css %}
+<style media="screen">
+	#submitted {
+		position: fixed;
+		top: 75px;
+		right: 50px;
+		width: 200px;
+	}
+
+	.class_table, .class_table td, .class_table th {
+		border: 1px solid black
+	}
+
+	.class_table th:first-child {
+		width: 120px;
+	}
+
+	.class_table td, .class_table th {
+		padding: 5px;
+	}
+
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Section 3: Administrative Details</h1>
+{{ include('variation/edit/_tabs.twig') }}
+<div style="text-align: left;">
+<br>
+<div id='submitted' hidden><div class="alert alert-success" role="alert">Data Saved <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></div></div>
+
+<div id="form1"></div>
+
+{% endblock %}

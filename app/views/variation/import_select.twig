@@ -1,0 +1,63 @@
+{% extends "layouts/master.twig" %}
+
+{% block css %}
+    <style>
+        .button_seperator {
+            margin-bottom: 15px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .menu_button {
+            width: 250px;
+        }
+
+        h3 {
+            text-align: center;
+        }
+
+        #details td{
+            padding: 3px;
+            font-family: Calibri;
+            font-size: 16px;
+        }
+
+        #details td:first-child {
+            padding-right: 10px;
+        }
+
+    </style>
+{% endblock %}
+
+{% block js %}
+   <script>
+        function start_import() {
+            unit = $("#unit").val();
+            window.location = "/variation/import/" + unit;
+        }
+    </script>
+{% endblock %}
+
+{% block content %}
+
+<h1>LGMS Import</h1>
+
+<div class="panel panel-default">
+    <div class="panel-body" style="text-align: left;">
+        <form>
+            <form class="form">
+                <label class="pull-left">Select Unit</label>
+                <select class="form-control" id="unit">
+                    {% for unit in units %}
+                        <option value="{{ unit.unit_code }}">{{ unit.unit_code }}: {{ unit.unit_name }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            <br>
+            <button type="button" class="btn btn-primary" onclick="start_import()">Import</button>
+        </form>
+    </div>
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,98 @@
+{% extends "layouts/master.twig" %}
+
+{% block js %}
+<script>
+	var stafflookup = {{ stafflookup|json_encode|raw }};
+
+	$(document).ready(function(){
+		$("#staff_select").on("change", function() {
+			if ($(this).val() == '') {
+				return;
+			}
+			$("#type").val(stafflookup[$(this).val()].type);
+			$("#name").val(stafflookup[$(this).val()].name);
+		});
+	});
+
+	function submit() {
+		var id = $("#staff_select").val();
+		var type = $("#type").val();
+		var name = $("#name").val();
+		$.ajax({
+			url: '{{ urlFor('/user/save') }}',
+			dataType: 'text',
+			data: {id : JSON.stringify(id), type : JSON.stringify(type), name : JSON.stringify(name)},
+			type: 'POST',
+			success: function(data){
+				console.log(data);
+				if (data=="success") {
+					$('#submitted').hide();
+					$('#submitted').fadeIn(1000);
+					setTimeout(function() {
+						$('#submitted').fadeOut(2000);
+					}, 2000);
+					g_has_changed = false;
+
+					$('#staff_select option:contains("' + stafflookup[id].name + '")').text(name);
+					stafflookup[id].type = type;
+					stafflookup[id].name = name;
+
+				} else {
+					alert("Error: Could not save.\nMessage: " + data);
+				}
+				$(".alpaca-form-button-submit").removeClass("disabled");
+				$(".alpaca-form-button-submit").html("Save");
+				g_lock = false;
+			}
+		});
+	}
+</script>
+{% endblock %}
+
+{% block css %}
+<style media="screen">
+	#submitted {
+		position: fixed;
+		top: 75px;
+		right: 50px;
+		width: 200px;
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Edit User</h1>
+<div style="text-align: left;">
+<br>
+<p><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span> When a user logs into the system the first time a user account is automatically created</p>
+<p><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span> A user account is set to observer by default</p>
+<div id='submitted' hidden><div class="alert alert-success" role="alert">Data Saved <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></div></div>
+
+	<label>Select User:</label>
+	<select id="staff_select" class="form-control">
+		<option></option>
+		{% for item in staff %}
+		    <option value="{{ item.id }}">{{ item.name }}</option>
+		{% endfor %}
+	</select>
+
+<div id="details" style="padding-top: 20px;">
+	<label>Change Name</label>
+	<input id="name" class="form-control" type='text'/>
+	<br>
+	<label>Change Type</label>
+	<select id="type" class="form-control">
+		<option value="">Observer</option>
+		<option value="uc">Unit Coordinator</option>
+		<option value="admin">Admin</option>
+		{% if user.type == 'developer' %}
+			<option value="developer">Developer</option>
+		{% endif %}
+	</select>
+	<br>
+	<div id="submit" class="btn btn-primary" onclick="submit()">Apply to user</div>
+
+</div>
+
+{% endblock %}

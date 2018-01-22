@@ -1,0 +1,392 @@
+{% extends "layouts/master.twig" %}
+
+{% block js %}
+<script>
+	var g_data = null;
+	var g_lock = false;
+	var g_has_changed = false;
+
+	window.onbeforeunload = function(event) {
+		if (g_has_changed)
+	    	return "You have unsaved changes. Are you sure you want to navigate away?";
+	};
+
+	$(document).ready(function(){
+		pull_data();
+	});
+
+	function pull_data() {
+		$.ajax({
+			url: '{{ urlFor('/variation/get/section2-1', { "variation_id" : variation_id }) }}',
+			method: "GET",
+			dataType: "text",
+			success: function(result) {
+				if (result != null && result != "0 results") {
+					g_data = JSON.parse(result);
+					console.log(g_data);
+					populate_form(format_data_for_form(g_data));
+				}
+			}
+		});
+
+	}
+
+	function format_data_for_form(data) {
+		var result = {
+			"id": data.id,
+		    "d21": {
+		        "unit_level": data.unit_level
+		    },
+		    "d22": {
+		        "credit_points": data.credit_points,
+				"credit_points_rationale": data.credit_points_rationale
+		    },
+		    "d23": {
+		        "unit_content": data.unit_content
+		    },
+		    "d24": data.outcomes,
+		    "d16": {
+		        "school": data.school
+		    },
+			"d17": data.courses,
+		    "d18": {
+		        "discipline_code": data.discipline_code
+		    },
+		    "d19": {
+		        "handbook_summary": data.handbook_summary
+		    }
+		};
+		return result;
+	}
+
+	function populate_form(data) {
+		$("#form1").html("");
+		$("#form1").alpaca({
+			"data": data,
+			"schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"title": "ID"
+					},
+					"d21": {
+						"title": "D2.1 Unit Level",
+						"type": "object",
+						"properties": {
+							"unit_level": {
+								"type": "string",
+								"title": "Please select Unit Level",
+								"enum": ["0", "1", "2", "3", "4", "5", "7"]
+							}
+						}
+					},
+					"d22": {
+						"title": "D2.2 Credit Points",
+						"type": "object",
+						"properties": {
+							"credit_points": {
+								"type": "integer",
+								"title": "Credit Points"
+							},
+							"credit_points_rationale": {
+								"type": "string",
+								"title": "If more or less than 10 credit points provide a rationale."
+							}
+						}
+					},
+					"d23": {
+						"title": "D2.3 Unit content",
+						"type": "object",
+						"properties": {
+							"unit_content": {
+								"type": "string",
+								"title": "What is the major content of the Unit? (Please number)"
+							}
+						}
+					},
+					"d24": {
+						"title": "D2.4 Unit Learning Outcomes (ULO)",
+						"type": "object",
+						"items": {
+							"type": "object",
+							"properties": {
+								"id": {
+									"type": "string",
+									"title": "ID"
+								},
+								"number": {
+									"type": "integer",
+									"title": "#"
+								},
+								"outcome": {
+									"type": "string",
+									"title": "Outcome"
+								}
+							}
+						}
+					}
+				}
+			},
+			"options": {
+				"events": {
+                    "change": function() {
+						g_has_changed = true;
+                        console.log("Change");
+                    }
+				},
+				"fields": {
+					"id": {
+						"hidden": true
+					},
+					"d21": {
+						"helpers": [
+							"Refer to the Guidelines and the <a href='http://policies.uws.edu.au/masterlist.php#s' target='_blank'>Structure & Nomenclature of Bachelor Awards policy</a>",
+							"<a data-toggle='modal' data-target='#level_modal'>Level Descriptions <span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span></a>"
+						],
+						"fields": {
+							"unit_level": {
+								"optionLabels": {{ levels|json_encode|raw }},
+								"sort": false,
+
+							}
+						}
+					},
+					"d22": {
+						"helpers": [
+							"The standard credit point value of Units is 10 and represents 0.125 EFTSL (Equivalent Full Time Student Load) over one year. If the credit point value is more or less than 10, please specify and provide the reason. If Units do not have a credit point value of 10 you need to consider the impact on every Course that the Unit contributes to. Standard annual load for a full-time student is 80 credit points (cps) which is usually split equally across the teaching sessions, for example, 40 cps in Autumn and 40 cps in Spring."
+						],
+						"fields": {
+							"credit_points_rationale": {
+								"type": "textarea",
+							}
+						}
+					},
+					"d23": {
+						"helpers": [
+							"Specify the major content of the Unit to be published in the Unit Outline. Using a numbered list, provide an overview of major topics to be covered.",
+							"Contact your School’s Course Quality Officer, or the <a href='http://www.westernsydney.edu.au/learning_futures/home/curriculum_transformation/advisors' target='blank'>Curriculum Advisors</a> in the Learning Futures portfolio for advice relating to Unit content, learning outcomes and/or digital learning. You can also refer to the <a href='http://www.westernsydney.edu.au/qilt/qilt' target='_blank'>QILT web site</a> for additional resources regarding digital learning technologies."
+						],
+						"fields": {
+							"unit_content": {
+								"type": "textarea",
+								"rows": "12"
+							}
+						}
+					},
+					"d24": {
+						"type": "table",
+						"helpers":  [
+							"Learning outcomes describe observable and measurable behaviours that students will be able to do on successful completion of the Unit. For example, students will be able to: “analyse risk management strategies for investment and insurance decisions”. The Assessment Guide, Section 3 on Writing clear learning outcomes and identifying criteria, provides further information. Unit learning outcomes also reflect how the Unit contributes to the Course level learning outcomes and graduate attributes, including where relevant, the generic skills associated with the University graduate attributes. ",
+							"Contact your School’s Course Quality Officer, or the <a href='http://www.westernsydney.edu.au/learning_futures/home/curriculum_transformation/advisors' target='blank'>Curriculum Advisors</a> in the Learning Futures portfolio for advice relating to Unit content, learning outcomes and/or digital learning. You can also refer to the <a href='http://www.westernsydney.edu.au/qilt/qilt' target='_blank'>QILT web site</a> for additional resources regarding digital learning technologies.",
+							"Refer to the <a href='http://policies.uws.edu.au/masterlist.php#u' target='_blank'>Unit Outline and Learning Guides Policy</a><br><p><label class='control-label alpaca-control-label'>After successful completion of this Unit, students will be able to: (please number)</label></p>"
+						],
+						"items": {
+							"fields": {
+								"id": {
+									"type": "hidden"
+								},
+								"number": {
+									"size": "2"
+								}
+							}
+						},
+						"actionbar": {
+							 "actions": [{
+								 "action": "add",
+								 "click": function() {
+	  		                        var value = this.getValue();
+  		                        	value.push({
+	  		                        });
+	  		                        this.setValue(value);
+	  		                    }
+							 }, {
+								 "action": "remove"
+							 }, {
+								 "action": "up",
+								 "enabled": false
+							 }, {
+								 "action": "down",
+								 "enabled": false
+							 }]
+						 }
+					}
+				},
+				"form": {
+				   "buttons": {
+					   "submit": {
+						   "title": "Save",
+						   "click": save
+					   }
+				   }
+			   }
+		   },
+		   "postRender": function(control) {
+			   $('[data-alpaca-container-item-name="d24"]').addClass("alpaca-field-object");
+			   $('[data-key="submit"]').addClass("btn-primary");
+			   for (var i = 0; i < 100; i++) {
+				   $('[data-alpaca-container-item-name="d24_' + i + '_number"]').width(60);
+			   }
+			   $(".actionbar").width(80);
+		   }
+		});
+	}
+
+	function save() {
+		if (g_lock){
+			return;
+		}
+		g_lock = true;
+		$(".alpaca-form-button-submit").addClass("disabled");
+		$(".alpaca-form-button-submit").html("Saving...");
+
+		var data = $("#form1").alpaca().getValue();
+		console.log(JSON.stringify(data));
+
+		var deleted = [];
+
+		if (g_data.outcomes != null) {
+			for (var i = 0; i < g_data.outcomes.length; i++) {
+				var find_id = g_data.outcomes[i].id
+				var found = false;
+				for (var j = 0; j < data.d24.length; j++) {
+					if (data.d24[j].id == find_id) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					deleted.push(find_id);
+				}
+			}
+		}
+
+		g_data.id = data.id;
+		g_data.unit_level = data.d21.unit_level;
+		g_data.credit_points = data.d22.credit_points;
+		g_data.credit_points_rationale = data.d22.credit_points_rationale;
+		g_data.unit_content = data.d23.unit_content;
+		g_data.outcomes = data.d24;
+
+		// Replace undefined values with empty string
+		for (var variable in g_data) {
+			if (g_data.hasOwnProperty(variable)) {
+				if (typeof g_data[variable] === 'undefined') {
+					g_data[variable] = "";
+				}
+			}
+		}
+
+		console.log(g_data);
+
+		console.log(g_data.outcomes);
+
+		console.log(deleted);
+
+		$.ajax({
+			url: '{{ urlFor('/variation/put/section2-1', { "variation_id" : variation_id }) }}',
+			dataType: 'text',
+			data: {data : JSON.stringify(g_data), delete : JSON.stringify(deleted)},
+			type: 'POST',
+			success: function(data){
+				console.log(data);
+				if (data=="success") {
+					//$('html, body').animate({scrollTop: $("body").offset().top},200);
+					$('#submitted').hide();
+					$('#submitted').fadeIn(1000);
+					setTimeout(function() {
+						$('#submitted').fadeOut(2000);
+					}, 2000);
+					pull_data();
+					g_has_changed = false;
+				} else {
+					alert("Error: Could not save.\nMessage: " + data);
+				}
+				$(".alpaca-form-button-submit").removeClass("disabled");
+				$(".alpaca-form-button-submit").html("Save");
+				g_lock = false;
+			}
+		});
+	}
+</script>
+{% endblock %}
+
+{% block css %}
+<style media="screen">
+	#submitted {
+		position: fixed;
+		top: 75px;
+		right: 50px;
+		width: 200px;
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Section 2: Academic Details</h1>
+{{ include('variation/edit/_tabs.twig') }}
+<div style="text-align: left;">
+<br>
+<div id='submitted' hidden><div class="alert alert-success" role="alert">Data Saved <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></div></div>
+
+<div id="form1"></div>
+</div>
+
+<div class="modal fade" id="level_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h3 class="modal-title" id="myModalLabel">Levels</h3>
+			</div>
+			<div class="modal-body" style="text-align: left">
+				<p>
+					Levels are based on the level of difficulty of the Unit, not the year in which they appear in a Course
+					structure. The following definitions are provided for Levels 1 to 3 to assist in determining the appropriate
+					Level for undergraduate Courses:
+				</p>
+				<h4>Level 1</h4>
+				<p>
+					This is an introductory Unit for a Bachelor degree. It assumes that the student has academic skills that would
+					correspond to successful completion of HSC-level or equivalent VET (Vocational Education and Training) study.
+					In some cases, there will be Assumed Knowledge that is equivalent to completion of one or more HSC subjects at
+					a particular standard (e.g. within a particular band). Level 1 Units are usually encountered in the early stages
+					of a Bachelor degree, and their learning outcomes include professional or discipline specific knowledge at an
+					introductory level for a Bachelor degree, and the development of academic skills that will allow students to progress
+					to more complex and challenging Units.
+				</p>
+				<h4>Level 2</h4>
+				<p>
+					This is a Unit that requires students to have the knowledge or skills base, as well as the academic skills, resulting
+					from the successful completion of one or more relevant Level 1 Units. Students would not normally encounter Level 2
+					Units in their first year of Bachelors study, except in some Advanced degree programs, or unless they have suitable
+					Advanced Standing. Level 2 Units contribute to the development of a student's discipline specific and/or professional
+					knowledge, understanding and skills, as well as the generic and contextualised graduate attributes for their degree,
+					but usually not to the level that would be expected of a University graduate.
+				</p>
+				<h4>Level 3</h4>
+				<p>
+					This is a Unit that, either on its own or in combination with Units of the same level, equips students with the more
+					advanced knowledge and skills that are required to practice a particular discipline or profession as a Bachelors
+					graduate. It ensures that students have acquired the full set of generic and contextualised graduate attributes for
+					their degree, including appropriate skills in communication, problem solving and critical thinking. Units at this
+					level normally require students to have successfully completed several Units worth of university-level study, either
+					in terms of content and skills, or the complexity and difficulty of the concepts and problems involved.
+				</p>
+				<p>
+					All new Courses must comply with the revised AQF. This is a legislative requirement, and part of the University’s
+					conditions for registration as a higher education provider. Please note that Unit levels do not equate to the AQF
+					Course levels.
+				</p>
+				<p>
+					The most recent edition of the AQF is available from the <a href='http://www.aqf.edu.au/' target='blank'>Australian Qualifications Framework</a> website
+				</p>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}

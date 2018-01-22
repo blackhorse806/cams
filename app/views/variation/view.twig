@@ -1,0 +1,870 @@
+{% extends "layouts/master.twig" %}
+
+{% block css %}
+    <style>
+
+        @page {
+            size: A4 portrait;
+        }
+        @page:left {
+            margin-left: 2cm;
+        }
+        @page:right {
+            margin-left: 2cm;
+            @bottom-right {
+                content: counter(page);
+            };
+            @bottom-left {
+                content: "";
+            };
+        }
+
+        body {
+            font-family: Calibri;
+        }
+
+        .content_table {
+            width: 650px;
+            text-align: left;
+            vertical-align: text-top;
+            /*font-size: 11px;*/
+        }
+
+        .content_table > tbody > tr > td {
+            vertical-align: text-top;
+            padding-bottom: 10px;
+        }
+        .content_table > tbody > tr > td:first-child {
+            width: 120px;
+            font-weight: bold;
+        }
+
+        .bordered_table {
+            border-collapse: collapse;
+            border: 1px solid black;
+            margin-bottom: 15px;
+        }
+
+        .bordered_table tr td,
+        .bordered_table tr th {
+            border: 1px solid black;
+            padding: 5px;
+        }
+
+        .bordered_table {
+            font-weight: normal;
+        }
+
+        #document {
+            text-align: left;
+        }
+
+        h1 {
+            margin-top: 40px;
+        }
+
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div id="document">
+        <h1>SECTION 1: PROPOSAL DETAILS</h1>
+        <h2>D1.1 Name and code of proposed Unit</h2>
+        <p>
+            Unit Number and Name:
+            {{ variation.unit_code }}
+            -
+            {{ variation.unit_name}}
+        </p>
+        <h2>D1.2 Type of proposal</h2>
+        {% if variation.proposal_type == 'New Unit' %}
+            New Unit
+        {% else %}
+            Variation
+        {% endif %}
+        <h2>D1.3 New Unit</h2>
+        <h3>a. Rationale for introduction of a new Unit</h3>
+        {{ variation.new_unit_rationale }}
+        <h2>D1.4 Variation</h2>
+        <h3>a. Please describe all of the changes to the Unit</h3>
+        {{ variation.variation_changes }}
+        <h3>b. Rationale for a variation to a Unit</h3>
+        {{ variation.variation_rationale }}
+        <h3>c. Impact of not making the change(s)</h3>
+        {{ variation.variation_impact }}
+        <h2>D1.5 Session for implementation</h2>
+        <p>
+            {{ variation.implementation_session }}
+            -
+            {{ variation.implementation_year }}
+        </p>
+        <h2>D1.6 Responsible School</h2>
+        {{ variation.school }}
+        <h2>D1.7 Impact on Course(s)</h2>
+        {% if courses %}
+            <p>
+                <table class="bordered_table">
+                    <thead>
+                        <tr>
+                            <th>Course Code</th>
+                            <th>Course Title</th>
+                            <th>Role</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for course in courses %}
+                            <tr>
+                                <td>{{ course.course_code }}</td>
+                                <td>{{ course.course_title }}</td>
+                                <td>{{ course.role }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </p>
+        {% endif %}
+        <h2>D1.8 Discipline code (Field of Education - for Government reporting purposes)</h2>
+        {{ variation.discipline_code }}
+        <h2>D1.9 Handbook summary</h2>
+        {{ variation.handbook_summary }}
+
+        <h1>SECTION 2: ACADEMIC DETAILS</h1>
+        <h2>D2.1 Unit level</h2>
+        {{ levels[variation.unit_level] }}
+        <h2>D2.2 Credit point value</h2>
+        <p>
+            Credit Points:
+            {{ variation.credit_points }}
+        </p>
+        {% if variation.children != '10' %}
+            <p>
+                <i>If more or less than 10 credit points, indicate credit points and provide a rationale.</i><br>
+                {{ variation.credit_points_rationale }}
+            </p>
+        {% endif %}
+        <h2>D2.3 Unit content</h2>
+        <p>
+            {{ variation.unit_content|nl2br }}
+        </p>
+        <h2>D2.4 Unit Learning Outcomes (ULO)</h2>
+        <p>
+            {% for outcome in outcomes %}
+                {{ outcome.number }}.
+                {{ outcome.outcome }}<br>
+            {% endfor %}
+        </p>
+        <h2>D2.5 Assessment</h2>
+        <h3>a. Assessment details</h3>
+        <p>
+            {% for group in assessments %}
+                {% if group.type == 'alt' %}
+                    <p>
+                        <i>For alternate assessment(s) (e.g. Summer session / Online mode) where assessment differs for a session or mode of offer, please indicate the session/mode below and complete the table. Add more tables if required
+                        </i>
+                    </p>
+                {% endif %}
+                <table class="bordered_table">
+                    {% if group.type == 'alt' %}
+                        <tr>
+                            <th colspan=2>Specify alternate session/mode</th>
+                            <td colspan=5>{{ group.session }}
+                                {{ group.mode }}</td>
+                        </tr>
+                        <tr>
+                            <th colspan=2>Rationale for alternate assessment</th>
+                            <td colspan=5>{{ group.rationale }}</td>
+                        </tr>
+                    {% endif %}
+                    <tr>
+                        <th>Item</th>
+                        <th>Type</th>
+                        <th>Length</th>
+                        <th>Group/Individual</th>
+                        <th>ULO's</th>
+                        <th>Weight</th>
+                        <th>Threshold</th>
+                    </tr>
+                    {% for ass in group.assessments %}
+                        <tr>
+                            <td>{{ ass.name }}</td>
+                            <td>{{ ass.type }}</td>
+                            <td>{{ ass.length }}</td>
+                            <td>{{ ass.gi }}</td>
+                            <td>{{ ass.ulos }}</td>
+                            <td>{{ ass.weight }}%</td>
+                            <td>{{ ass.threshold|replace({'0':'No', '1':'Yes'}) }}</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            {% endfor %}
+        </p>
+        <h3>b. The standard duration for a final examination is two hours, including reading time. Three-hour final examinations, including reading time, are only permitted if appropriate justification in accordance with the Examinations Policy is provided below.</h3>
+        <p>
+            {{ variation.three_hour_exam }}
+        </p>
+        <h3>c. If there is a threshold for this Unit (i.e. students must pass the exam or other assessment component to pass the Unit), please provide justification for the threshold.</h3>
+        <p>
+            {{ variation.unit_threshold }}
+        </p>
+        <h3>d. If there are assessment items listed above which are not mandatory, please identify and provide rationale, in accordance with the Assessment Policy - Criteria and Standards-Based Assessment.</h3>
+        <p>
+            {{ variation.assessments_not_mandatory }}
+        </p>
+        <h3>e. If there are any mandatory attendance requirements (e.g. for accreditation purposes), please provide details and rationale.</h3>
+        <p>
+            {{ variation.attendance_requirements }}
+        </p>
+        <h2>D2.6 Assumed knowledge</h2>
+        <p>
+            {{ variation.assumed_knowledge }}
+        </p>
+        <h2>D2.7 Pre-requisite units</h2>
+        <p>
+            {% if prerequisite %}
+                <table class="bordered_table">
+                    <thead>
+                        <tr>
+                            <th>Unit Code</th>
+                            <th>Unit Name</th>
+                            <th>Justification</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for prereq in prerequisite %}
+                            <tr>
+                                <td>{{ prereq.unit_code }}</td>
+                                <td>{{ prereq.unit_name }}</td>
+                                <td>{{ prereq.justification}}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </p>
+        <h2>D2.8 Co-requisite units</h2>
+        <p>
+            {% if corequisite %}
+                <table class="bordered_table">
+                    <thead>
+                        <tr>
+                            <th>Unit Code</th>
+                            <th>Unit Name</th>
+                            <th>Justification</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for coreq in corequisite %}
+                            <tr>
+                                <td>{{ coreq.unit_code }}</td>
+                                <td>{{ coreq.unit_name }}</td>
+                                <td>{{ coreq.justification}}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </p>
+        <h2>D2.9 Equivalent units</h2>
+        <p>
+            {% if equivalent %}
+                <table class="bordered_table">
+                    <thead>
+                        <tr>
+                            <th>Unit Code</th>
+                            <th>Unit Name</th>
+                            <th>College Unit?</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for equiv in equivalent %}
+                            <tr>
+                                <td>{{ equiv.unit_code }}</td>
+                                <td>{{ equiv.unit_name }}</td>
+                                <td>{{ equiv.college_unit|replace({'0':'No', '1':'Yes'}) }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </p>
+        <h2>D2.10 Incompatible units</h2>
+        <p>
+            {% if incompatible %}
+                <table class="bordered_table">
+                    <thead>
+                        <tr>
+                            <th>Unit Code</th>
+                            <th>Unit Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for incom in incompatible %}
+                            <tr>
+                                <td>{{ incom.unit_code }}</td>
+                                <td>{{ incom.unit_name }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </p>
+        <h2>D2.11 Enrolment restrictions</h2>
+        <p>
+            {{ variation.enrolment_restrictions }}
+        </p>
+        <h2>D2.12 Special requirements</h2>
+        <h3>a. Legislative pre-requisites</h3>
+        <p>
+            {{ variation.legislative_prerequisites }}
+        </p>
+        <h3>b. Essential equipment</h3>
+        <p>
+            {{ variation.essential_equipment }}
+        </p>
+        <h2>D2.13 Work Integrated Learning (WIL)</h2>
+        <h3>a. If this unit involves Work Integrated Learning, please indicate all of the types below which apply.</h3>
+        <table class="bordered_table">
+            <tr>
+                <td>Service Learning</td>
+                <td>{{ wil.service_learning|replace({'0':'No', '1':'Yes'}) }}</td>
+            </tr>
+            <tr>
+                <td>Industry Projects</td>
+                <td>{{ wil.industry_projects|replace({'0':'No', '1':'Yes'}) }}</td>
+            </tr>
+            <tr>
+                <td>Work Placement – Observational</td>
+                <td>{{ wil.placement_observational|replace({'0':'No', '1':'Yes'}) }}</td>
+            </tr>
+            <tr>
+                <td>Work Placement – Experiential</td>
+                <td>{{ wil.placement_experiential|replace({'0':'No', '1':'Yes'}) }}</td>
+            </tr>
+            <tr>
+                <td>Structured Practicum</td>
+                <td>{{ wil.structured_practicum|replace({'0':'No', '1':'Yes'}) }}</td>
+            </tr>
+            <tr>
+                <td>Preparatory WIL components</td>
+                <td>{{ wil.preparatory_components|replace({'0':'No', '1':'Yes'}) }}</td>
+            </tr>
+        </table>
+        <h3>b. Please provide details on how the quality of supervision of the student will be ensured while in the workplace:</h3>
+        {{ wil.supervision_quality }}
+        <h3>c. Placement</h3>
+        <i>Is this unit required to be captured in the Corporate Placement System (InPlace)?
+        </i>
+        {{ wil.capture_placement|replace({'0':'No', '1':'Yes'}) }}
+        <h3>d. Work Experience in Industry (WEI)</h3>
+        <p>
+            <i>i) Does this unit include a work experience component?
+            </i>
+            {{ wil.wei_include_experience|replace({'0':'No', '1':'Yes'}) }}
+        </p>
+        <p>
+            <i>ii) Is the work experience relevant to the course of study?
+            </i>
+            {{ wil.wei_course_relevant|replace({'0':'No', '1':'Yes'}) }}
+        </p>
+        <p>
+            <i>If you have answered yes to Questions (i) and (ii) above, please provide the following details:</i>
+            <table class="bordered_table">
+                <thead>
+                    <tr>
+                        <th>Hours/Week</th>
+                        <th>Total Hours Required</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>{{ wil.wei_hours_week|replace({'0':'No', '1':'Yes'}) }}</td>
+                        <td>{{ wil.wei_total_hours|replace({'0':'No', '1':'Yes'}) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </p>
+        <p>
+            <i>iii) ongoing and regular input and contact with students;
+            </i>
+            {{ wil.wei_student_input_contact|replace({'0':'No', '1':'Yes'}) }}
+        </p>
+        <p>
+            <i>iv) oversight and direction of work occurring during its performance, not just the progress of a student’s work;
+            </i>
+            {{ wil.wei_student_oversight|replace({'0':'No', '1':'Yes'}) }}
+        </p>
+        <p>
+            <i>v) definition and management of the implementation of educational content and objectives of the unit;
+            </i>
+            {{ wil.wei_content_objectives|replace({'0':'No', '1':'Yes'}) }}
+        </p>
+        <p>
+            <i>vi) definition and management of assessment of student learning and performance during the placement; and
+            </i>
+            {{ wil.wei_student_performance|replace({'0':'No', '1':'Yes'}) }}
+        </p>
+        <p>
+            <i>vii) definition and management of the standard of learning and performance to be achieved by the student during the placement.
+            </i>
+            {{ wil.wei_performance_management|replace({'0':'No', '1':'Yes'}) }}
+        </p>
+        <p>
+            <i>viii) interaction between the work-based supervisor and the student, which may include site visits;
+            </i>
+            {{ wil.wei_site_interaction|replace({'0':'No', '1':'Yes'}) }}
+        </p>
+        <p>
+            <i>ix) organisation of student placements;
+            </i>
+            {{ wil.wei_placement_organisation|replace({'0':'No', '1':'Yes'}) }}
+        </p>
+        <p>
+            <i>x) ongoing monitoring of student work and progress;
+            </i>
+            {{ wil.wei_student_monitoring|replace({'0':'No', '1':'Yes'}) }}
+        </p>
+        <p>
+            <i>xi) assessment of student learning and performance during the placement
+            </i>
+            {{ wil.wei_student_assessment|replace({'0':'No', '1':'Yes'}) }}
+        </p>
+        <h2>D2.14 Western Sydney University Strategic Initiatives</h2>
+        <h3>a. Does the unit have a sustainability focus?</h3>
+        <p>
+            {{ variation.sustainability|replace({'0':'No', '1':'Yes'}) }}
+        </p>
+        <p>
+            <i>If yes, please indicate which content items have a sustainability focus:
+            </i>
+            {{ wil.sustainability_content_items }}
+        </p>
+        <h3>b. Does this unit contribute to achieving an Aboriginal &amp; Torres Strait Islander Graduate Attribute?</h3>
+        <p>
+            {{ variation.sustainability|replace({'0':'No', '1':'Yes'}) }}
+        </p>
+        <p>
+            <i>If yes, please indicate which content items have an Aboriginal &amp; Torres Strait Islander focus:
+            </i>
+            {{ wil.sustainability_content_items }}
+        </p>
+        <h2>D2.15 Impact on existing professional accreditation</h2>
+        <p>
+            {% if accreditation %}
+                <table class="bordered_table">
+                    <thead>
+                        <tr>
+                            <th>Course or Specialisation</th>
+                            <th>Accrediting Body</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Review Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for accred in accreditation %}
+                            <tr>
+                                <td>{{ accred.code }}</td>
+                                <td>{{ accred.accreditor }}</td>
+                                <td>{{ accred.start_date }}</td>
+                                <td>{{ accred.end_date }}</td>
+                                <td>{{ accred.review_date }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </p>
+
+        <h1>SECTION 3: ADMINISTRATIVE DETAILS</h1>
+        <h2>D3.1 Discontinuation of units</h2>
+        <h3>a. Units to be replaced</h3>
+        <p>
+            {% if discontinuation %}
+                <table class="bordered_table">
+                    <thead>
+                        <tr>
+                            <th>Unit Code</th>
+                            <th>Unit Name</th>
+                            <th>Last year offered</th>
+                            <th>Last session offered</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for discon in discontinuation %}
+                            <tr>
+                                <td>{{ discon.unit_code }}</td>
+                                <td>{{ discon.unit_name }}</td>
+                                <td>{{ discon.last_year }}</td>
+                                <td>{{ discon.last_session }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </p>
+        <h3>b. Arrangements for currently enrolled students</h3>
+        <p>
+            {% if discontinuation_arrangements %}
+                <table class="bordered_table">
+                    <thead>
+                        <tr>
+                            <th>Course or Specialis-ation Code</th>
+                            <th>Course or Specialisation(Key Program, Major, Sub-major, PG Specialisation) Title</th>
+                            <th>Number of Students</th>
+                            <th>Transition Arrangements</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for discon in discontinuation_arrangements %}
+                            <tr>
+                                <td>{{ discon.code }}</td>
+                                <td>{{ discon.title }}</td>
+                                <td>{{ discon.num_students }}</td>
+                                <td>{{ discon.transition_arrangements }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </p>
+        <h2>D3.2 Unit offering</h2>
+        <h3>a. Unit session, location and class (unit offering options)</h3>
+        <p>
+            {% if offerings %}
+                <table class="bordered_table">
+                    <thead>
+                        <tr>
+                            <th>Session</th>
+                            <th>Location</th>
+                            <th>Unit Class (not applicable to Online)</th>
+                            <th>Est. Student Numbers</th>
+                            <th>Quota (if applicable)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in offerings %}
+                            <tr>
+                                <td>{{ item.session }}</td>
+                                <td>{{ item.location }}</td>
+                                <td>{{ item.unit_class }}</td>
+                                <td>{{ item.est_num_students }}</td>
+                                <td>{{ item.quota }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </p>
+        <h3>b. Is this Unit available to international students?</h3>
+        <p>
+            {{ variation.unit_international_available|replace({'0':'No', '1':'Yes'}) }}
+        </p>
+        <p>
+            <i>Please provide comments or additional information to clarify Unit Offering details if necessary.</i><br>
+            {{ variation.international_unit_offering }}
+        </p>
+        <h3>c. Timetabling requirements - attendance hours and type of space required</h3>
+        <p>
+            {% if timetabling %}
+                <table class="bordered_table">
+                    <thead>
+                        <tr>
+                            <th>Campus /Site</th>
+                            <th>Session(s)</th>
+                            <th>Type of activity</th>
+                            <th>Type of space required</th>
+                            <th>Hours per activity</th>
+                            <th>Total Hours per session</th>
+                            <th>Size for each activity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in timetabling %}
+                            <tr>
+                                <td>{{ item.location }}</td>
+                                <td>{{ item.session }}</td>
+                                <td>{{ item.activity_type }}</td>
+                                <td>{{ item.space_type }}</td>
+                                <td>{{ item.activity_hours }}</td>
+                                <td>{{ item.total_session_hours }}</td>
+                                <td>{{ item.activity_size }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </p>
+        <h2>D3.3 Equivalent Student Learning Experience across Learning Environments</h2>
+        <p>
+            {{ variation.equivalent_learning_experience }}
+        </p>
+        <h2>D3.4 Prescribed Unit text</h2>
+        <p>
+            {% for textbook in readings %}
+                {% if textbook.resource_type == "Prescribed Textbook" %}
+                    {{ textbook.reference }}<br>
+                {% endif %}
+            {% endfor %}
+        </p>
+        <h2>D3.5 Library resources</h2>
+        <h3>a. Essential readings</h3>
+        <p>
+            {% for essential in readings %}
+                {% if essential.resource_type == "Essential Reading" %}
+                    {{ essential.reference }}<br>
+                {% endif %}
+            {% endfor %}
+        </p>
+        <h3>b. Additional readings</h3>
+        <p>
+            {% for additional in readings %}
+                {% if additional.resource_type == "Additional Reading" %}
+                    {{ additional.reference }}<br>
+                {% endif %}
+            {% endfor %}
+        </p>
+        <h2>D3.6 Supply of facilities/resources from other organisations</h2>
+        <h3>a. Please indicate the type of activity provided by the other organisation:</h3>
+        <p>
+            {% if variation.non_university_facilities == '1' %}
+                <table class="bordered_table">
+                    <tr>
+                        <td>Use of non-University premises or facilities:</td>
+                        <td>{{ variation.non_university_facilities|replace({'0':'No', '1':'Yes'}) }}</td>
+                    </tr>
+                    <tr>
+                        <td>clinical placement</td>
+                        <td>{{ variation.clinical_placement|replace({'0':'No', '1':'Yes'}) }}</td>
+                    </tr>
+                    <tr>
+                        <td>industrial experience</td>
+                        <td>{{ variation.industrial_experience|replace({'0':'No', '1':'Yes'}) }}</td>
+                    </tr>
+                    <tr>
+                        <td>practice teaching</td>
+                        <td>{{ variation.practice_teaching|replace({'0':'No', '1':'Yes'}) }}</td>
+                    </tr>
+                    <tr>
+                        <td>other educational activities</td>
+                        <td>{{ variation.other_educational_activities|replace({'0':'No', '1':'Yes'}) }}</td>
+                    </tr>
+                    <tr>
+                        <td>internships</td>
+                        <td>{{ variation.internships|replace({'0':'No', '1':'Yes'}) }}</td>
+                    </tr>
+                    <tr>
+                        <td>teaching by external partner</td>
+                        <td>{{ variation.teach_external_partner|replace({'0':'No', '1':'Yes'}) }}</td>
+                    </tr>
+                </table>
+            {% else %}
+                No
+            {% endif %}
+        </p>
+        <h3>b. Please provide details of how the teaching and learning activities are to be monitored by the University’s staff.</h3>
+        <p>
+            {{ variation.external_monitor_activities }}
+        </p>
+        <h3>c. Please provide details of any arrangements for the academic staff of other institutions to deliver the University Unit and how their teaching activities are to be monitored by the University staff responsible for the Unit.</h3>
+        <p>
+            {{ variation.external_delivery_arrangements }}
+        </p>
+        <h2>D3.7 Unit coordinator</h2>
+        <p>
+            <table class="bordered_table">
+                <tr>
+                    <td>School</td>
+                    <td>{{ variation.admin_school }}</td>
+                </tr>
+                <tr>
+                    <td>Contact Person</td>
+                    <td>{{ variation.admin_contact }}</td>
+                </tr>
+                <tr>
+                    <td>Extension</td>
+                    <td>{{ variation.admin_extension }}</td>
+                </tr>
+                <tr>
+                    <td>Email Address</td>
+                    <td>{{ variation.admin_email }}</td>
+                </tr>
+            </table>
+        </p>
+        <h2>D3.8 Schools responsible for teaching the Unit</h2>
+        <h3>a. Please list all Schools that will be responsible for teaching the Unit.</h3>
+        <p>
+            {% if responsible_schools %}
+                <table class="bordered_table">
+                    <thead>
+                        <tr>
+                            <th>School Name</th>
+                            <th>% Teaching</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in responsible_schools %}
+                            <tr>
+                                <td>{{ item.school }}</td>
+                                <td>{{ item.percent }}%</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </p>
+        <h3>b. Please list ONE main contact for each of the Schools named above, excluding the Owning School contact, who should be listed at question 3.7.</h3>
+        <p>
+            {% if responsible_schools %}
+                <table class="bordered_table">
+                    <thead>
+                        <tr>
+                            <th>School</th>
+                            <th>Contact Person</th>
+                            <th>Ext.</th>
+                            <th>Email Address</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in school_contacts %}
+                            <tr>
+                                <td>{{ item.school }}</td>
+                                <td>{{ item.person }}</td>
+                                <td>{{ item.extension }}</td>
+                                <td>{{ item.email }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </p>
+        <h1>SECTION 4: CHECKLIST AND APPROVALS</h1>
+        <h2>D4.1 Checklist</h2>
+        <p>
+            <table class="bordered_table">
+                <tr>
+                    <td>Contact Person</td>
+                    <td>{{ variation.checklist_contact }}</td>
+                </tr>
+                <tr>
+                    <td>School/Division</td>
+                    <td>{{ variation.checklist_school }}</td>
+                </tr>
+                <tr>
+                    <td>Extension</td>
+                    <td>{{ variation.checklist_extension }}</td>
+                </tr>
+                <tr>
+                    <td>Email Address</td>
+                    <td>{{ variation.checklist_email }}</td>
+                </tr>
+            </table>
+        </p>
+        <p>
+            <table class="bordered_table">
+                <thead>
+                    <tr>
+                        <th>FOR ALL PROPOSALS</th>
+                        <th>Completion Y/N</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1. I have notified all affected Directors of Academic Programs regarding any impact on Courses resulting from this proposal.</td>
+                        <td>{{ variation.checklist1|replace({'0':'No','1':'Yes'})}}</td>
+                    </tr>
+                    <tr>
+                        <td>2. I have ensured that all information provided in Question 3.1 is consistent with transition details provided in any Unit Proposal and Variation Form (Form D16) or Course Transition Details for a Course or Specialisation Form (Form E16).</td>
+                        <td>{{ variation.checklist2|replace({'0':'No','1':'Yes'})}}</td>
+                    </tr>
+                    <tr>
+                        <td>3. I have provided a contact for each School that is responsible for teaching the Unit.</td>
+                        <td>{{ variation.checklist3|replace({'0':'No','1':'Yes'})}}</td>
+                    </tr>
+                    <tr>
+                        <td>4. I have included Units listed as replaced Units at Question 3.1a, under Question 2.9 if they are deemed to be equivalent for progression or under Question 2.10 if they are deemed incompatible.</td>
+                        <td>{{ variation.checklist4|replace({'0':'No','1':'Yes'})}}</td>
+                    </tr>
+                    <tr>
+                        <td>5. Where applicable, I have provided a rationale for:
+                            <ul>
+                                <li>3 hour exam Question 2.5b</li>
+                                <li>Assessment threshold Question 2.5c</li>
+                                <li>Non-mandatory assessment items Question 2.5d</li>
+                                <li>Mandatory attendance requirements Question 2.5e</li>
+                            </ul>
+                        </td>
+                        <td>{{ variation.checklist5|replace({'0':'No','1':'Yes'})}}</td>
+                    </tr>
+                    <tr>
+                        <td>6. I have ensured that the Dean of School has provided sign off on all resources required to support the Unit Questions 3.2, 3.4 and 3.7.</td>
+                        <td>{{ variation.checklist6|replace({'0':'No','1':'Yes'})}}</td>
+                    </tr>
+                    <tr>
+                        <td>7. I have undertaken a WHS risk assessment for this unit, and where required, I have consulted with the WHS unit regarding the proposed risk mitigation strategies</td>
+                        <td>{{ variation.checklist6|replace({'0':'No','1':'Yes'})}}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </p>
+        <p>
+            <table class="bordered_table">
+                <thead>
+                    <tr>
+                        <th>FOR NEW UNITS ONLY</th>
+                        <th>Completion Y/N</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>8. I have completed Form B16 - Full Course Proposal and Variation for all Courses affected by the introduction of this New Unit.</td>
+                        <td>{{ variation.checklist7|replace({'0':'No','1':'Yes'})}}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </p>
+        <h2>D4.2 Record of approvals</h2>
+        <h3>Level 1: Dean of School</h3>
+        <p>
+            <b>School Name:</b>
+            {{ variation.deans_school }}
+        </p>
+        <p>
+            <b>{% if variation.deans_acting == '1' %}Acting {% endif %}Dean’s Name:</b>
+            {{ variation.deans_name }}
+        </p>
+        <p>
+            <b>Date of Endorsement:</b>
+            {{ variation.deans_endorsement_date }}
+        </p>
+        <p>
+            <b>Evidence of endorsement/approval (TRIM reference):</b>
+            {{ variation.deans_trim_ref }}
+        </p>
+        <h3>Level 2: School Academic Committee</h3>
+        <p>
+            <b>Name of {% if variation.sac_acting == '1' %}Acting {% endif %}Chair:</b>
+            {{ variation.sac_name }}
+        </p>
+        <p>
+            <b>Date of Meeting:</b>
+            {{ variation.sac_meeting_date }}
+        </p>
+        <p>
+            <b>Evidence of endorsement/approval by SAC/Other School Endorsement (TRIM reference):</b>
+            {{ variation.sac_trim_ref }}
+        </p>
+        <h3>Level 3: Academic Planning and Course Approvals Committee</h3>
+        <p>
+            <b>Name of Chair:</b>
+            {{ variation.apcac_name }}
+        </p>
+        <p>
+            <b>Date of Meeting:</b>
+            {{ variation.apcac_meeting_date }}
+        </p>
+        <p>
+            <b>Evidence of approval:</b>
+            {{ variation.apcac_trim_ref }}
+        </p>
+    </div>
+{% endblock %}

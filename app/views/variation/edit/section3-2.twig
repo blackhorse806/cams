@@ -1,0 +1,515 @@
+{% extends "layouts/master.twig" %}
+
+{% block js %}
+<script>
+	var g_data = null;
+	var g_lock = false;
+	var g_has_changed = false;
+
+	window.onbeforeunload = function(event) {
+		if (g_has_changed)
+	    	return "You have unsaved changes. Are you sure you want to navigate away?";
+	};
+
+	$(document).ready(function(){
+		pull_data();
+	});
+
+	function pull_data() {
+		$.ajax({
+			url: '{{ urlFor('/variation/get/section3-2', { "variation_id" : variation_id }) }}',
+			method: "GET",
+			dataType: "text",
+			success: function(result) {
+				if (result != null && result != "0 results") {
+					g_data = JSON.parse(result);
+					populate_form(format_data_for_form(g_data));
+					console.log(g_data);
+				}
+			}
+		});
+	}
+
+	function format_data_for_form(data) {
+		var result = {
+			"id": data.id,
+		    "a": data.offerings,
+		    "b": {
+				"unit_international_available": data.unit_international_available,
+				"international_unit_offering": data.international_unit_offering,
+			},
+		    "c": data.timetabling
+		};
+		return result;
+	}
+
+	function populate_form(data) {
+		$("#form1").html("");
+		$("#form1").alpaca({
+			"data": data,
+			"schema": {
+				"title": "D3.2 Unit offering",
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"title": "ID"
+					},
+					"a": {
+						"title": "a. Unit session, location and class (unit offering options) ",
+						"type": "array",
+						"items": {
+							"type": "object",
+							"properties": {
+								"id": {
+									"type": "string",
+									"title": "ID"
+								},
+								"session": {
+									"type": "string",
+									"title": "Session",
+									"enum": {{ sessions|json_encode|raw }}
+								},
+								"location": {
+									"type": "string",
+									"title": "<a data-toggle='modal' data-target='#location_modal'>Location <span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span></a>",
+									"enum": {{ locations|json_encode|raw }}
+								},
+								"unit_class": {
+									"type": "string",
+									"title": "<a data-toggle='modal' data-target='#class_modal'>Unit Class <span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span></a>"
+								},
+								"est_num_students": {
+									"type": "string",
+									"title": "<a data-toggle='modal' data-target='#est_modal'>Estimated Number of Students <span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span></a>"
+								},
+								"quota": {
+									"type": "string",
+									"title": "<a data-toggle='modal' data-target='#quota_modal'>Quota <span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span></a>"
+								}
+							}
+						}
+					},
+					"b": {
+						"title": "b.	Is this Unit available to international students?",
+						"type": "object",
+						"properties": {
+							"unit_international_available": {
+								"type": "string",
+								"title": "",
+								"enum": ["0", "1"]
+							},
+							"international_unit_offering": {
+								"type": "string",
+								"title": "Please provide comments or additional information to clarify Unit Offering details if necessary."
+							}
+						},
+						"dependencies": {
+							"international_unit_offering": ["unit_international_available"]
+						}
+					},
+					"c": {
+						"title": "c. Timetabling requirements - attendance hours and type of space required",
+						"type": "array",
+						"items": {
+							"type": "object",
+							"properties": {
+								"id": {
+									"type": "string",
+									"title": "ID"
+								},
+								"session": {
+									"type": "string",
+									"title": "Session",
+									"enum": {{ sessions|json_encode|raw }}
+								},
+								"location": {
+									"type": "string",
+									"title": "Location",
+									"enum": {{ locations|json_encode|raw }}
+								},
+								"activity_type": {
+									"type": "string",
+									"title": "Type of Activity",
+									"enum": {{ activity_type|json_encode|raw }}
+								},
+								"space_type": {
+									"type": "string",
+									"title": "Type of Space Required"
+								},
+								"activity_hours": {
+									"type": "number",
+									"title": "Hours per Activity"
+								},
+								"total_session_hours": {
+									"type": "number",
+									"title": "Total Hours per Session"
+								},
+								"activity_size": {
+									"type": "number",
+									"title": "Activity Size"
+								}
+							}
+						}
+					}
+				}
+			},
+			"toolbarSticky": true,
+			"options": {
+				"events": {
+                    "change": function() {
+						g_has_changed = true;
+                        console.log("Change");
+                    }
+				},
+				"fields": {
+					"id": {
+						"type": "hidden"
+					},
+					"a": {
+						"helpers": [
+							"Please indicate the session(s) and campus(es) where the Unit will be taught and an estimate of the student numbers for each offering.  If applicable please provide the quota that should be applied to restrict enrolments for the first offering."
+						],
+						"type": "table",
+						"items": {
+							"fields": {
+								"id": {
+									"type": "hidden"
+								},
+								"unit_code": {
+									"size": 1
+								}
+							}
+						},
+						"actionbar": {
+							 "actions": [{
+								 "action": "add",
+								 "click": function() {
+									var value = this.getValue();
+									value.push({
+									});
+									this.setValue(value);
+								}
+							 }, {
+								 "action": "remove"
+							 }, {
+								 "action": "up",
+								 "enabled": false
+							 }, {
+								 "action": "down",
+								 "enabled": false
+							 }]
+						}
+					},
+					"b": {
+						"helpers": [
+							"Note:  For international students studying by distance and/or online, refer to information on <a href='http://www.uws.edu.au/about_uws/uws/governance/education_services_for_overseas_students_esos' target='_blank'>ESOS compliance</a>."
+						],
+						"fields": {
+							"unit_international_available": {
+								"type": "select",
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+							},
+							"international_unit_offering": {
+								"type": "textarea",
+								"dependencies": {
+				                    "unit_international_available": "1"
+				                }
+							}
+						}
+					},
+					"c": {
+						"helpers": [
+							"Please give details for each class type; for example, the different timetabling requirements for Summer (if the unit is delivered in a different way; for example with intensive classes).",
+							"Details: Breakdown of the hours allocated per week to each type of delivery, estimated size of cohort for each delivery type, details of the type of space required including any specific on-campus teaching facilities that are required. ",
+							"Note: Details must also be provided to the Course Data Management team in the annual data collection period."
+						],
+						"type": "table",
+						"items": {
+							"fields": {
+								"id": {
+									"type": "hidden"
+								},
+								"course_code": {
+									"size": 4
+								},
+								"threshold": {
+		                    		"type": "select",
+		                    		"optionLabels": ["No", "Yes"]
+		                		}
+							}
+						},
+						"actionbar": {
+							 "actions": [{
+								 "action": "add",
+								 "click": function() {
+									var value = this.getValue();
+									value.push({
+									});
+									this.setValue(value);
+								}
+							 }, {
+								 "action": "remove"
+							 }, {
+								 "action": "up",
+								 "enabled": false
+							 }, {
+								 "action": "down",
+								 "enabled": false
+							 }]
+						}
+					}
+				},
+				"form": {
+				   "buttons": {
+					   "submit": {
+						   "title": "Save",
+						   "click": save
+					   }
+				   }
+			   }
+		   },
+			"postRender": function(control) {
+				$('[data-key="submit"]').addClass("btn-primary");
+				$('[data-alpaca-container-item-name="a"]').addClass("alpaca-field-object");
+				$('[data-alpaca-container-item-name="c"]').addClass("alpaca-field-object");
+				// for (var i = 0; i < 100; i++) {
+					// $('[name="_' + i + '_number"]').width(17);
+					// $('[data-alpaca-container-item-name="_' + i + '_weight"]').width(50);
+					// $('[data-alpaca-container-item-name="_' + i + '_ulos"]').width(100);
+					// $('[data-alpaca-container-item-name="_' + i + '_threshold"]').width(80);
+					// $('[data-alpaca-container-item-name="_' + i + '_type"]').width(105);
+				// }
+				$(".actionbar").width(80);
+			}
+		});
+	}
+
+	function find_deleted(loaded, modified) {
+		var deleted = [];
+		if (loaded != null) {
+			for (var i = 0; i < loaded.length; i++) {
+				var find_id = loaded[i].id
+				var found = false;
+				for (var j = 0; j < modified.length; j++) {
+					if (modified[j].id == find_id) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					deleted.push(find_id);
+				}
+			}
+		}
+		return deleted;
+	}
+
+	function save() {
+		if (g_lock){
+			return;
+		}
+		g_lock = true;
+		$(".alpaca-form-button-submit").addClass("disabled");
+		$(".alpaca-form-button-submit").html("Saving...");
+
+		var data = $("#form1").alpaca().getValue();
+		console.log(JSON.stringify(data));
+
+		var deleted = {};
+		deleted.offerings = find_deleted(g_data.offerings, data.a);
+		deleted.timetabling = find_deleted(g_data.timetabling, data.c);
+
+		g_data.id = data.id;
+		g_data.unit_international_available = data.b.unit_international_available;
+		g_data.international_unit_offering = data.b.international_unit_offering;
+		g_data.offerings = data.a;
+		g_data.timetabling = data.c;
+
+		// Replace undefined values with empty string
+		for (var variable in g_data) {
+			if (g_data.hasOwnProperty(variable)) {
+				if (typeof g_data[variable] === 'undefined') {
+					g_data[variable] = "";
+				}
+			}
+		}
+
+		console.log(g_data);
+
+		console.log(deleted);
+
+		$.ajax({
+			url: '{{ urlFor('/variation/put/section3-2', { "variation_id" : variation_id }) }}',
+			dataType: 'text',
+			data: {data : JSON.stringify(g_data), delete : JSON.stringify(deleted)},
+			type: 'POST',
+			success: function(data){
+				console.log(data);
+				if (data=="success") {
+					//$('html, body').animate({scrollTop: $("body").offset().top},200);
+					$('#submitted').hide();
+					$('#submitted').fadeIn(1000);
+					setTimeout(function() {
+						$('#submitted').fadeOut(2000);
+					}, 2000);
+					pull_data();
+					g_has_changed = false;
+				} else {
+					alert("Error: Could not save.\nMessage: " + data);
+				}
+				$(".alpaca-form-button-submit").removeClass("disabled");
+				$(".alpaca-form-button-submit").html("Save");
+				g_lock = false;
+			}
+		});
+	}
+</script>
+{% endblock %}
+
+{% block css %}
+<style media="screen">
+	#submitted {
+		position: fixed;
+		top: 75px;
+		right: 50px;
+		width: 200px;
+	}
+
+	.class_table, .class_table td, .class_table th {
+		border: 1px solid black
+	}
+
+	.class_table th:first-child {
+		width: 120px;
+	}
+
+	.class_table td, .class_table th {
+		padding: 5px;
+	}
+
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Section 3: Administrative Details</h1>
+{{ include('variation/edit/_tabs.twig') }}
+<div style="text-align: left;">
+<br>
+<div id='submitted' hidden><div class="alert alert-success" role="alert">Data Saved <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></div></div>
+
+<div id="form1"></div>
+
+<!-- Modals -->
+<div class="modal fade" id="location_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title" id="myModalLabel">Location</h4>
+			</div>
+			<div class="modal-body">
+				<p>
+					<b>Campus</b> - Note that a campus can comprise multiple sites, e.g. Penrith campus includes Kingswood and Werrington
+					South sites; Parramatta campus includes Parramatta North, Parramatta City and (from 2017) 1PSQ.  This prevents
+					students from needing a rule waiver if their units are taught at different sites of their home campus.
+				</p>
+				<p>
+					<b>Online</b> - Units have all learning materials and activities available via web-based technologies, and have
+					no mandatory attendance requirements unless for an end of session examination.
+				</p>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="class_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title" id="myModalLabel">Unit Class</h4>
+			</div>
+			<div class="modal-body">
+				<p>
+					<p>
+						<b>Unit Class</b> – Unit Class means the type of delivery for the Unit. If there is more than one Unit Class, separate
+						them with a comma. This information informs the timetable. Day classes are normally scheduled to commence between 8am
+						and 5pm; Evening classes between 6pm and 9pm; and Weekend classes are scheduled on Saturdays or Sundays. Each Unit
+						Class is mapped to an attendance mode; either internal or external.
+					</p>
+
+					* Unit Class Options – please use the following Key:
+					<table class="class_table">
+						<tr><th width="100px">Unit Class</th><th>Restrictions</th></tr>
+						<tr><td>Day (D)</td><td>Commence between 8am and 5pm</td></tr>
+						<tr><td>Evening (E)</td><td>Commence between 6pm and 9pm</td></tr>
+						<tr><td>Weekend (W)</td><td>Sat or Sun commence between 8am and 9pm</td></tr>
+						<tr><td>Offshore (O)</td><td>Offshore location with face to face classes</td></tr>
+						<tr><td>Composite (C)</td><td>All learning materials and activities available via web-based technologies, but learning activities require some mandatory on-campus attendance</td></tr>
+					</table>
+
+					<p>Note 1: Full time students are not eligible for a NSW student travel concession pass if they enrol in fewer than three ‘Day’ classes.</p>
+					<p>Note 2: Schools have the option in Platform Web to allow students to select tutorials or lectures from any Unit Class on the campus where they are enrolled, e.g. Parramatta Day students can register for a Parramatta Evening Lecture.</p>
+					<p>Note 3: International student visa holders may not undertake more than 25 per cent of the total Course by distance and/or online learning (including composite units).</p>
+
+
+				</p>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="est_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title" id="myModalLabel">Estimated Student Numbers</h4>
+			</div>
+			<div class="modal-body">
+				<p>
+					<b>Estimated Student Numbers</b> – Please provide the estimated student numbers for each Unit Offering Option. This
+					information will be used by Timetabling to assess the teaching space resources required for the Unit. If there
+					is more than one Unit Class, indicate student numbers for each one.
+				</p>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="quota_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title" id="myModalLabel">Quota</h4>
+			</div>
+			<div class="modal-body">
+				<p>
+					<b>Quota</b> – Only enter a quota if the total student enrolment numbers should be restricted due to staffing or specialist
+					space constraints. Please note that quotas should only be applied to core Units in exceptional circumstances and must
+					align with the number of students in all associated Courses. Note also that the quota must be confirmed during the
+					Annual Unit Data Collection.
+				</p>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+{% endblock %}

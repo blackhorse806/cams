@@ -1,0 +1,555 @@
+{% extends "layouts/master.twig" %}
+
+{% block js %}
+<script>
+	var g_data = null;
+	var g_lock = false;
+	var g_has_changed = false;
+
+	window.onbeforeunload = function(event) {
+		if (g_has_changed)
+	    	return "You have unsaved changes. Are you sure you want to navigate away?";
+	};
+
+	$(document).ready(function(){
+		pull_data();
+	});
+
+	function pull_data() {
+		$.ajax({
+			url: '{{ urlFor('/variation/get/section2-6', { "variation_id" : variation_id }) }}',
+			method: "GET",
+			dataType: "text",
+			success: function(result) {
+				if (result != null && result != "0 results") {
+					g_data = JSON.parse(result);
+					populate_form(format_data_for_form(g_data));
+					console.log(g_data);
+				}
+			}
+		});
+	}
+
+	function format_data_for_form(data) {
+		var result = {
+			"id": data.id,
+		    "d26": {
+		        "assumed_knowledge": data.assumed_knowledge
+		    },
+		    "d27": data.prerequisite,
+		    "d28": data.corequisite,
+			"d29": data.equivalent,
+			"d210": data.incompatible,
+		    "d211": {
+		        "enrolment_restrictions": data.enrolment_restrictions
+		    },
+		    "d212": {
+		        "legislative_prerequisites": data.legislative_prerequisites,
+				"essential_equipment": data.essential_equipment
+		    }
+		};
+		return result;
+	}
+
+	function populate_form(data) {
+		$("#form1").html("");
+		$("#form1").alpaca({
+			"data": data,
+			"schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"title": "ID"
+					},
+					"d26": {
+						"title": "D2.6 Assumed knowledge",
+						"type": "object",
+						"properties": {
+							"assumed_knowledge": {
+								"type": "string",
+								"title": "Please describe any prior knowledge that a student would be expected to have to be able to successfully undertake this Unit."
+							}
+						}
+					},
+					"d27": {
+						"title": "D2.7 Pre-requisite units",
+						"type": "array",
+						"items": {
+							"type": "object",
+							"properties": {
+								"id": {
+									"type": "string",
+									"title": "ID"
+								},
+								"unit_code": {
+									"type": "string",
+									"title": "Unit Code"
+								},
+								"unit_name": {
+									"type": "string",
+									"title": "Unit Name",
+								},
+								"justification": {
+									"type": "string",
+									"title": "Justification"
+								}
+							}
+						}
+					},
+					"d28": {
+						"title": "D2.8 Co-requisite units",
+						"type": "array",
+						"items": {
+							"type": "object",
+							"properties": {
+								"id": {
+									"type": "string",
+									"title": "ID"
+								},
+								"unit_code": {
+									"type": "string",
+									"title": "Unit Code"
+								},
+								"unit_name": {
+									"type": "string",
+									"title": "Unit Name",
+								},
+								"justification": {
+									"type": "string",
+									"title": "Justification"
+								}
+							}
+						}
+					},
+					"d29": {
+						"title": "D2.9 Equivalent units",
+						"type": "array",
+						"items": {
+							"type": "object",
+							"properties": {
+								"id": {
+									"type": "string",
+									"title": "ID"
+								},
+								"unit_code": {
+									"type": "string",
+									"title": "Unit Code"
+								},
+								"unit_name": {
+									"type": "string",
+									"title": "Unit Name",
+								},
+								"college_unit": {
+									"type": "string",
+									"title": "College Unit",
+									"enum": ["0", "1"]
+								}
+							}
+						}
+					},
+					"d210": {
+						"title": "D2.10 Incompatible units",
+						"type": "array",
+						"items": {
+							"type": "object",
+							"properties": {
+								"id": {
+									"type": "string",
+									"title": "ID"
+								},
+								"unit_code": {
+									"type": "string",
+									"title": "Unit Code"
+								},
+								"unit_name": {
+									"type": "string",
+									"title": "Unit Name",
+								}
+							}
+						}
+					},
+					"d211": {
+						"title": "D2.11 Enrolment restrictions",
+						"type": "object",
+						"properties": {
+							"enrolment_restrictions": {
+								"type": "string",
+								"title": "Please specify any requirements students must complete before they can enrol in this Unit. For example, ‘must be enrolled in specific Courses, or Course types (e.g. undergraduate or postgraduate), or ‘must have passed n credit points at Level n.’"
+							}
+						}
+					},
+					"d212": {
+						"title": "D2.12 Special requirements",
+						"type": "object",
+						"properties": {
+							"legislative_prerequisites": {
+								"type": "string",
+								"title": "a. Legislative pre-requisites"
+							},
+							"essential_equipment": {
+								"type": "string",
+								"title": "b. Essential equipment"
+							}
+						}
+					}
+				}
+			},
+			"toolbarSticky": true,
+			"options": {
+				"events": {
+                    "change": function() {
+						g_has_changed = true;
+                        console.log("Change");
+                    }
+				},
+				"fields": {
+					"id": {
+						"type": "hidden"
+					},
+					"d26": {
+						"fields": {
+							"assumed_knowledge": {
+								"type": "textarea",
+								"helpers": [
+									"Please describe any prior knowledge that a student would be expected to have to be able to successfully undertake this Unit. Please note that the University Units are not normally listed as assumed knowledge as students may have completed relevant studies elsewhere to gain the ‘assumed knowledge’. <a data-toggle='modal' data-target='#example_modal'>Example</a>"
+								]
+							}
+						}
+					},
+					"d27": {
+						"helpers": [
+								"Prerequisites are Units that must be successfully completed before a student can enrol in another Unit. If pre-requisite Units are prescribed, you must provide justification. You can use the <a href='http://handbook.westernsydney.edu.au/hbook/UNIT_SEARCH.ASPX' target='_blank'>online Handbook</a> to find Unit codes for prerequisite Units.",
+								"Prerequisites for Units are acceptable only where it can be demonstrated that specific preparation, covered by the prerequisite, is essential to success in the Unit – for example, on the grounds of professional accreditation requirements or standards, technical knowledge required for progression to that level in the discipline, or health and safety considerations.<br><p><label class='control-label alpaca-control-label'>Please provide Unit details for any Units that a student must successfully complete before they can enrol in this Unit.</label></p>"
+						],
+						"type": "table",
+						"items": {
+							"fields": {
+								"id": {
+									"type": "hidden"
+								},
+								"unit_code": {
+									"size": 1
+								}
+							}
+						},
+						"actionbar": {
+							 "actions": [{
+								 "action": "add",
+								 "click": function() {
+									var value = this.getValue();
+									value.push({
+									});
+									this.setValue(value);
+								}
+							 }, {
+								 "action": "remove"
+							 }, {
+								 "action": "up",
+								 "enabled": false
+							 }, {
+								 "action": "down",
+								 "enabled": false
+							 }]
+						}
+					},
+					"d28": {
+						"helpers": [
+							"Co-requisites are Units that must be either successfully completed before a student enrols in another Unit OR the student may be enrolled in at the same time as another Unit. If co-requisite Units are prescribed, you must provide justification. You can use the <a href='http://handbook.westernsydney.edu.au/hbook/UNIT_SEARCH.ASPX' target='_blank'>online Handbook</a> to find Unit codes for prerequisite Units.",
+							"Co-requisites should only be listed where there is a clear pedagogical rationale for requiring concurrent or previous enrolment (for example, a theory-based Unit run concurrently with a related, practice-based one).<br><p><label class='control-label alpaca-control-label'>Please provide Unit details for any Units that a student must be either enrolled in, or have successfully completed, before they can enrol in this Unit.</label></p>"
+						],
+						"type": "table",
+						"items": {
+							"fields": {
+								"id": {
+									"type": "hidden"
+								},
+								"unit_code": {
+									"size": 1
+								}
+							}
+						},
+						"actionbar": {
+							 "actions": [{
+								 "action": "add",
+								 "click": function() {
+									var value = this.getValue();
+									value.push({
+									});
+									this.setValue(value);
+								}
+							 }, {
+								 "action": "remove"
+							 }, {
+								 "action": "up",
+								 "enabled": false
+							 }, {
+								 "action": "down",
+								 "enabled": false
+							 }]
+						}
+					},
+					"d29": {
+						"helpers": [
+							"Specify if there are any Units (past or present) that are equivalent for progression purposes to the proposed Unit (list Unit names and codes). Determination of equivalence should be based on whether the learning outcomes are equivalent. Advanced Standing can be granted to students who have previously passed a Unit that has been deemed Equivalent. Please note that any Units listed as replaced under Question 3.1, will only be approved as equivalent if they are listed here.",
+							"The College Diploma Units are equivalent to the University Units with the same name but have a different Unit code. If the University Unit is amended it is important to advise The College so that the Diploma Units can be amended accordingly. ",
+							"Note: Please note that a Unit cannot be both equivalent and incompatible.<br><p><label class='control-label alpaca-control-label'>Please list any Units that are equivalent for progression purposes to the proposed Unit (past or present); please list Unit names and codes.  (Include Units replaced under Question D3.1a, if they are equivalent for progression purposes).</label></p>"
+						],
+						"type": "table",
+						"items": {
+							"fields": {
+								"id": {
+									"type": "hidden"
+								},
+								"unit_code": {
+									"size": 1
+								},
+								"college_unit": {
+		                    		"type": "select",
+		                    		"optionLabels": ["No", "Yes"],
+									"removeDefaultNone": true,
+									"size": 1
+		                		}
+							}
+						},
+						"actionbar": {
+							 "actions": [{
+								 "action": "add",
+								 "click": function() {
+									var value = this.getValue();
+									value.push({
+									});
+									this.setValue(value);
+								}
+							 }, {
+								 "action": "remove"
+							 }, {
+								 "action": "up",
+								 "enabled": false
+							 }, {
+								 "action": "down",
+								 "enabled": false
+							 }]
+						}
+					},
+					"d210": {
+						"helpers": [
+							"Specify any Units not to be counted for credit with the proposed new or amended Unit. A Unit cannot be both equivalent and incompatible.",
+							"Incompatible rules can be used in a variety of situations: <ol type='a' class='help-block'><li>A Unit may be incompatible to a new or modified Unit if it has substantial curriculum overlap, but is not deemed an equivalent Unit. <li>Where students have an ‘alternate’ Unit option for Course completion (can complete Unit A <b>or</b> Unit B, but <b>not both</b>). <li>Where a beginner level Unit (e.g. a language or mathematics Unit) may be completed before a higher level Unit, but not after. <li>Used as a tool to flag students who have completed a Unit for which Advanced Standing is at the discretion of the Director of Academic Program (DAP). (The DAP would decide if a rule waiver or academic credit is to be given to a student, based on individual merit). <li>The rule will <b>not</b> apply the appropriate credit points towards Course completion for the incompatible Unit previously completed.</ol><p><label>Please list any Units not to be counted for credit with this proposed new or amended Unit.</label></p>"
+						],
+						"type": "table",
+						"items": {
+							"fields": {
+								"id": {
+									"type": "hidden"
+								},
+								"unit_code": {
+									"size": 1
+								}
+							}
+						},
+						"actionbar": {
+							 "actions": [{
+								 "action": "add",
+								 "click": function() {
+									var value = this.getValue();
+									value.push({
+									});
+									this.setValue(value);
+								}
+							 }, {
+								 "action": "remove"
+							 }, {
+								 "action": "up",
+								 "enabled": false
+							 }, {
+								 "action": "down",
+								 "enabled": false
+							 }]
+						}
+					},
+					"d211": {
+						"helpers": [
+							"Enrolment Restriction Rules can apply to a range of situations for which it is desired to restrict student access to a Unit; e.g. <ol type='a' class='help-block'><li>Unit restrictions based on enrolled Course code </li><li>Unit restrictions based on Course GPA </li><li>Unit restrictions based on number of credit points passed (optional: at specified Unit level) </li><li>Unit restrictions based on level of study (e.g. Units only available to students enrolled at postgraduate level) </li></ol>"
+						],
+						"fields": {
+							"enrolment_restrictions": {
+								"type": "textarea"
+							}
+						}
+					},
+					"d212": {
+						"fields": {
+							"legislative_prerequisites": {
+								"helpers": [
+									"Please list any legislative requirements that must be met before a student can enrol in the Unit (e.g. Child Protection Course, Criminal Record Check, or First Aid Certificate). This information will be listed under ‘Special Requirement Pre-requisites’ in the online Handbook."
+								],
+								"type": "textarea"
+							},
+							"essential_equipment": {
+								"helpers": [
+									"Please list any essential equipment or resources that students are expected to have to be able to successfully and safely complete the Unit. This information is included in the Unit Outline."
+								],
+								"type": "textarea"
+							}
+						}
+					}
+				},
+				"form": {
+				   "buttons": {
+					   "submit": {
+						   "title": "Save",
+						   "click": save
+					   }
+				   }
+			   }
+		   },
+			"postRender": function(control) {
+				$('[data-key="submit"]').addClass("btn-primary");
+				$('[data-alpaca-container-item-name="d27"]').addClass("alpaca-field-object");
+				$('[data-alpaca-container-item-name="d28"]').addClass("alpaca-field-object");
+				$('[data-alpaca-container-item-name="d29"]').addClass("alpaca-field-object");
+				$('[data-alpaca-container-item-name="d210"]').addClass("alpaca-field-object");
+				// for (var i = 0; i < 100; i++) {
+					// $('[name="_' + i + '_number"]').width(17);
+					// $('[data-alpaca-container-item-name="_' + i + '_weight"]').width(50);
+					// $('[data-alpaca-container-item-name="_' + i + '_ulos"]').width(100);
+					// $('[data-alpaca-container-item-name="_' + i + '_threshold"]').width(80);
+					// $('[data-alpaca-container-item-name="_' + i + '_type"]').width(105);
+				// }
+				$(".actionbar").width(80);
+			}
+		});
+	}
+
+	function find_deleted(loaded, modified) {
+		var deleted = [];
+		if (loaded != null) {
+			for (var i = 0; i < loaded.length; i++) {
+				var find_id = loaded[i].id
+				var found = false;
+				for (var j = 0; j < modified.length; j++) {
+					if (modified[j].id == find_id) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					deleted.push(find_id);
+				}
+			}
+		}
+		return deleted;
+	}
+
+	function save() {
+		if (g_lock){
+			return;
+		}
+		g_lock = true;
+		$(".alpaca-form-button-submit").addClass("disabled");
+		$(".alpaca-form-button-submit").html("Saving...");
+
+		var data = $("#form1").alpaca().getValue();
+		console.log(JSON.stringify(data));
+
+		var deleted = {};
+		deleted.prerequisite = find_deleted(g_data.prerequisite, data.d27);
+		deleted.corequisite = find_deleted(g_data.corequisite, data.d28);
+		deleted.equivalent = find_deleted(g_data.equivalent, data.d29);
+		deleted.incompatible = find_deleted(g_data.incompatible, data.d210);
+
+		g_data.id = data.id;
+		g_data.assumed_knowledge = data.d26.assumed_knowledge;
+		g_data.enrolment_restrictions = data.d211.enrolment_restrictions;
+		g_data.legislative_prerequisites = data.d212.legislative_prerequisites;
+		g_data.essential_equipment = data.d212.essential_equipment;
+		g_data.prerequisite = data.d27;
+		g_data.corequisite = data.d28;
+		g_data.equivalent = data.d29;
+		g_data.incompatible = data.d210;
+
+		// Replace undefined values with empty string
+		for (var variable in g_data) {
+			if (g_data.hasOwnProperty(variable)) {
+				if (typeof g_data[variable] === 'undefined') {
+					g_data[variable] = "";
+				}
+			}
+		}
+
+		console.log(g_data);
+
+		console.log(deleted);
+
+		$.ajax({
+			url: '{{ urlFor('/variation/put/section2-6', { "variation_id" : variation_id }) }}',
+			dataType: 'text',
+			data: {data : JSON.stringify(g_data), delete : JSON.stringify(deleted)},
+			type: 'POST',
+			success: function(data){
+				console.log(data);
+				if (data=="success") {
+					//$('html, body').animate({scrollTop: $("body").offset().top},200);
+					$('#submitted').hide();
+					$('#submitted').fadeIn(1000);
+					setTimeout(function() {
+						$('#submitted').fadeOut(2000);
+					}, 2000);
+					pull_data();
+					g_has_changed = false;
+				} else {
+					alert("Error: Could not save.\nMessage: " + data);
+				}
+				$(".alpaca-form-button-submit").removeClass("disabled");
+				$(".alpaca-form-button-submit").html("Save");
+				g_lock = false;
+			}
+		});
+	}
+</script>
+{% endblock %}
+
+{% block css %}
+<style media="screen">
+	#submitted {
+		position: fixed;
+		top: 75px;
+		right: 50px;
+		width: 200px;
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Section 2: Academic Details</h1>
+{{ include('variation/edit/_tabs.twig') }}
+<div style="text-align: left;">
+<br>
+<div id='submitted' hidden><div class="alert alert-success" role="alert">Data Saved <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></div></div>
+
+<div id="form1"></div>
+
+<!-- Modals -->
+<div class="modal fade" id="example_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title" id="myModalLabel">Example</h4>
+			</div>
+			<div class="modal-body">
+				<p>
+					Assumed Knowledge for Unit 100015.4 History and Philosophy of Psychology: <br>
+					A basic understanding of core concepts of personality, cognition, learning, perception, biological, social and developmental psychology and research methods is desirable.
+				</p>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+{% endblock %}

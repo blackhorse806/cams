@@ -1,0 +1,368 @@
+{% extends "layouts/master.twig" %}
+
+{% block js %}
+<script>
+	var g_data = null;
+	var g_lock = false;
+	var g_has_changed = false;
+
+	window.onbeforeunload = function(event) {
+		if (g_has_changed)
+	    	return "You have unsaved changes. Are you sure you want to navigate away?";
+	};
+
+	$(document).ready(function(){
+		pull_data();
+	});
+
+	function pull_data() {
+		$.ajax({
+			url: '{{ urlFor('/variation/get/section3-1', { "variation_id" : variation_id }) }}',
+			method: "GET",
+			dataType: "text",
+			success: function(result) {
+				if (result != null && result != "0 results") {
+					g_data = JSON.parse(result);
+					populate_form(format_data_for_form(g_data));
+					console.log(g_data);
+				}
+			}
+		});
+	}
+
+	function format_data_for_form(data) {
+		var result = {
+			"id": data.id,
+		    "d31": {
+				"a": data.discontinuation,
+			    "b": data.discontinuation_arrangements,
+		    }
+		};
+		return result;
+	}
+
+	function populate_form(data) {
+		$("#form1").html("");
+		$("#form1").alpaca({
+			"data": data,
+			"schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"title": "ID"
+					},
+					"d31": {
+						"title": "D3.1 Discontinuation of units",
+						"type": "object",
+						"properties": {
+							"a": {
+								"title": "a. Units to be replaced ",
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string",
+											"title": "ID"
+										},
+										"unit_code": {
+											"type": "string",
+											"title": "Unit Code"
+										},
+										"unit_name": {
+											"type": "string",
+											"title": "Unit Name"
+										},
+										"last_year": {
+											"type": "number",
+											"title": "Last Year Offered"
+										},
+										"last_session": {
+											"type": "string",
+											"title": "Last Session Offered",
+											"enum": {{ sessions|json_encode|raw }}
+										}
+									}
+								}
+							},
+							"b": {
+								"title": "b. Arrangements for currently enrolled students",
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string",
+											"title": "ID"
+										},
+										"code": {
+											"type": "string",
+											"title": "Course or Specialisation Code"
+										},
+										"title": {
+											"type": "string",
+											"title": "Course or Specialisation Title"
+										},
+										"num_students": {
+											"type": "string",
+											"title": "Number of Students"
+										},
+										"transition_arrangements": {
+											"type": "string",
+											"title": "Transition Arrangements"
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			},
+			"toolbarSticky": true,
+			"options": {
+				"events": {
+                    "change": function() {
+						g_has_changed = true;
+                        console.log("Change");
+                    }
+				},
+				"fields": {
+					"id": {
+						"type": "hidden"
+					},
+					"d31": {
+						"fields": {
+							"a": {
+								"helpers": [
+									"Please list the Unit code and name of all Units being replaced and made obsolete as a result of this proposal (i.e. no longer being taught by the University), and provide the last year and session of offer. If the replaced Units listed below are equivalent for progression, they must also be listed in either Question D2.9 if they are deemed to be equivalent for progression or Question D2.10 if they are deemed incompatible."
+								],
+								"type": "table",
+								"items": {
+									"fields": {
+										"id": {
+											"type": "hidden"
+										},
+										"course_code": {
+											"size": 4
+										},
+										"threshold": {
+				                    		"type": "select",
+				                    		"optionLabels": ["No", "Yes"]
+				                		}
+									}
+								},
+								"actionbar": {
+									 "actions": [{
+										 "action": "add",
+										 "click": function() {
+											var value = this.getValue();
+											value.push({
+											});
+											this.setValue(value);
+										}
+									 }, {
+										 "action": "remove"
+									 }, {
+										 "action": "up",
+										 "enabled": false
+									 }, {
+										 "action": "down",
+										 "enabled": false
+									 }]
+								}
+							},
+							"b": {
+								"helpers": [
+									"Where a Unit is being replaced, provide full details of transition arrangements for all students, including those on approved leave of absence, or for existing students who have failed the Unit in its previous form.",
+									"If the Unit is core in any Course and no teach out arrangements are to be implemented at the University, and no transition arrangements within the University are to be made available, please provide details of any other institution to be involved in enabling students in the affected Course(s) to complete. <ul class='help-block'><li>Name and full address of institution which has been approached to take on these students. </li><li>Name of Unit at the host institution students are to be enrolled in. </li><li>Identifying code for Unit students are to be enrolled in. </li><li>Please attach as an appendix to this form (if applicable) copy of agreement made or proposed, between the University and the institution which has agreed to enrol this cohort of students. </li></ul><p><label class='control-label alpaca-control-label'>Please provide the number of students affected and Transition Arrangements.</label></p>",
+									"Please ensure that any information provided above is consistent with details provided in any Course Transition forms submitted.",
+								],
+								"type": "table",
+								"items": {
+									"fields": {
+										"id": {
+											"type": "hidden"
+										},
+										"transition_arrangements": {
+											"type": "textarea"
+										},
+										"threshold": {
+				                    		"type": "select",
+				                    		"optionLabels": ["No", "Yes"]
+				                		}
+									}
+								},
+								"actionbar": {
+									 "actions": [{
+										 "action": "add",
+										 "click": function() {
+											var value = this.getValue();
+											value.push({
+											});
+											this.setValue(value);
+										}
+									 }, {
+										 "action": "remove"
+									 }, {
+										 "action": "up",
+										 "enabled": false
+									 }, {
+										 "action": "down",
+										 "enabled": false
+									 }]
+								}
+							}
+						}
+					},
+				},
+				"form": {
+				   "buttons": {
+					   "submit": {
+						   "title": "Save",
+						   "click": save
+					   }
+				   }
+			   }
+		   },
+			"postRender": function(control) {
+				$('[data-key="submit"]').addClass("btn-primary");
+				$('[data-alpaca-container-item-name="d27"]').addClass("alpaca-field-object");
+				$('[data-alpaca-container-item-name="d28"]').addClass("alpaca-field-object");
+				$('[data-alpaca-container-item-name="d29"]').addClass("alpaca-field-object");
+				$('[data-alpaca-container-item-name="d210"]').addClass("alpaca-field-object");
+				// for (var i = 0; i < 100; i++) {
+					// $('[name="_' + i + '_number"]').width(17);
+					// $('[data-alpaca-container-item-name="_' + i + '_weight"]').width(50);
+					// $('[data-alpaca-container-item-name="_' + i + '_ulos"]').width(100);
+					// $('[data-alpaca-container-item-name="_' + i + '_threshold"]').width(80);
+					// $('[data-alpaca-container-item-name="_' + i + '_type"]').width(105);
+				// }
+				$(".actionbar").width(80);
+			}
+		});
+	}
+
+	function find_deleted(loaded, modified) {
+		var deleted = [];
+		if (loaded != null) {
+			for (var i = 0; i < loaded.length; i++) {
+				var find_id = loaded[i].id
+				var found = false;
+				for (var j = 0; j < modified.length; j++) {
+					if (modified[j].id == find_id) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					deleted.push(find_id);
+				}
+			}
+		}
+		return deleted;
+	}
+
+	function save() {
+		if (g_lock){
+			return;
+		}
+		g_lock = true;
+		$(".alpaca-form-button-submit").addClass("disabled");
+		$(".alpaca-form-button-submit").html("Saving...");
+
+		var data = $("#form1").alpaca().getValue();
+		console.log(JSON.stringify(data));
+
+		var deleted = {};
+		deleted.discontinuation = find_deleted(g_data.discontinuation, data.d31.a);
+		deleted.discontinuation_arrangements = find_deleted(g_data.discontinuation_arrangements, data.d31.b);
+
+		g_data.id = data.id;
+		g_data.discontinuation = data.d31.a;
+		g_data.discontinuation_arrangements = data.d31.b;
+
+		// Replace undefined values with empty string
+		for (var variable in g_data) {
+			if (g_data.hasOwnProperty(variable)) {
+				if (typeof g_data[variable] === 'undefined') {
+					g_data[variable] = "";
+				}
+			}
+		}
+
+		console.log(g_data);
+
+		console.log(deleted);
+
+		$.ajax({
+			url: '{{ urlFor('/variation/put/section3-1', { "variation_id" : variation_id }) }}',
+			dataType: 'text',
+			data: {data : JSON.stringify(g_data), delete : JSON.stringify(deleted)},
+			type: 'POST',
+			success: function(data){
+				console.log(data);
+				if (data=="success") {
+					//$('html, body').animate({scrollTop: $("body").offset().top},200);
+					$('#submitted').hide();
+					$('#submitted').fadeIn(1000);
+					setTimeout(function() {
+						$('#submitted').fadeOut(2000);
+					}, 2000);
+					pull_data();
+					g_has_changed = false;
+				} else {
+					alert("Error: Could not save.\nMessage: " + data);
+				}
+				$(".alpaca-form-button-submit").removeClass("disabled");
+				$(".alpaca-form-button-submit").html("Save");
+				g_lock = false;
+			}
+		});
+	}
+</script>
+{% endblock %}
+
+{% block css %}
+<style media="screen">
+	#submitted {
+		position: fixed;
+		top: 75px;
+		right: 50px;
+		width: 200px;
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Section 3: Administrative Details</h1>
+{{ include('variation/edit/_tabs.twig') }}
+<div style="text-align: left;">
+<br>
+<div id='submitted' hidden><div class="alert alert-success" role="alert">Data Saved <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></div></div>
+
+<div id="form1"></div>
+
+<!-- Modals -->
+<div class="modal fade" id="example_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title" id="myModalLabel">Example</h4>
+			</div>
+			<div class="modal-body">
+				<p>
+					Assumed Knowledge for Unit 100015.4 History and Philosophy of Psychology: <br>
+					A basic understanding of core concepts of personality, cognition, learning, perception, biological, social and developmental psychology and research methods is desirable.
+				</p>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,1103 @@
+{% extends "layouts/master.twig" %}
+
+{% block js %}
+<script>
+	var g_data = null;
+	var g_lock = false;
+	var g_has_changed = false;
+    var g_ass_core_group = null;
+	var ass_core = null;
+
+	window.onbeforeunload = function(event) {
+		if (g_has_changed)
+	    	return "You have unsaved changes. Are you sure you want to navigate away?";
+	};
+
+	$(document).ready(function(){
+		pull_data();
+	});
+
+	function pull_data() {
+		$.ajax({
+			url: '{{ urlFor('/variation/get/section2-5', { "variation_id" : variation_id }) }}',
+			method: "GET",
+			dataType: "text",
+			success: function(result) {
+				if (result != null && result != "0 results") {
+					g_data = JSON.parse(result);
+					populate_form(format_data_for_form(g_data));
+					console.log(g_data);
+				}
+			}
+		});
+	}
+
+	function ass_create_table() {
+		var data = ass_core;
+		var html = '<table class="ass_table" id="ass_table"><tr><th>Num</th><th>Name</th><th>Type</th><th>Length</th><th>Group/Individual</th><th>ULO\'s</th><th>Weight</th><th>Threshold</th></tr>';
+		for (var i = 0; i < data.length; i++) {
+			var threshold = "No";
+			if (data[i].threshold == "1") {
+				threshold = "Yes";
+			}
+			html += '<tr>';
+			html += '<td>' + (i + 1) + '</td>';
+			html += '<td>' + data[i].name + '</td>';
+			html += '<td>' + data[i].type + '</td>';
+			html += '<td>' + data[i].length + '</td>';
+			html += '<td>' + data[i].gi + '</td>';
+			html += '<td>' + data[i].ulos + '</td>';
+			html += '<td>' + data[i].weight + '%</td>';
+			html += '<td>' + threshold + '</td>';
+			html += '</tr>';
+		}
+		html += '</table>';
+		html += '<div class="btn btn-default btn-sm" onclick="ass_add()"><i class="glyphicon glyphicon-plus-sign"></i>Add New Assessment</div>';
+		$("#assessments	").html(html);
+
+		$("#ass_table tr").click(function() {
+			if (isNaN($(this).children("td").html())) {
+				return;
+			}
+			var pos = $(this).children("td").html() - 1;
+			$("#edit_modal").modal();
+			ass_core[pos].pos = pos;
+
+			$("#edit_modal_body").html("");
+			$("#edit_modal_body").alpaca({
+				"data": ass_core[pos],
+				"schema": {
+					"type": "object",
+				        "properties": {
+				            "pos": {
+				                "type": "string",
+				                "title": "ID"
+				            },
+				            "name": {
+				                "type": "string",
+				                "title": "<a data-toggle='modal' data-target='#assessment_modal'>Name <span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span></a>"
+				            },
+				            "type": {
+				                "type": "string",
+				                "title": "<a data-toggle='modal' data-target='#type_modal'>Type (Additional Information) <span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span></a>",
+				            },
+				            "length": {
+				                "type": "string",
+				                "title": "<a data-toggle='modal' data-target='#length_modal'>Length <span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span></a>"
+				            },
+							"gi": {
+				                "type": "string",
+				                "title": "Group/Individual",
+				                "enum": ["Individual", "Group", "Both (Individual & Group)"]
+				            },
+				            "ulos": {
+				                "type": "string",
+				                "title": "<a data-toggle='modal' data-target='#ulo_modal'>ULO's <span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span></a>"
+				            },
+				            "weight": {
+				                "type": "number",
+				                "title": "<a data-toggle='modal' data-target='#weight_modal'>Weight <span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span></a>"
+				            },
+				            "threshold": {
+				                "type": "string",
+				                "title": "<a data-toggle='modal' data-target='#threshold_modal'>Threshold <span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span></a>",
+				                "enum": ["0", "1"]
+				            }
+					 	}
+					},
+					"options": {
+						"events": {
+		                    "change": function() {
+								g_has_changed = true;
+		                        console.log("Change");
+		                    }
+						},
+						"fields": {
+                            "pos": {
+                                "type": "hidden"
+                            },
+                            "type": {
+								"type": "textarea",
+								"rows": 2,
+                            },
+							"length": {
+								"type": "textarea",
+								"rows": 2,
+							},
+							"gi": {
+                                "type": "select",
+								"sort": false,
+								"optionLabels": ["Individual", "Group", "Both (Individual & Group)"],
+								"removeDefaultNone": true,
+                            },
+                            "threshold": {
+                                "type": "select",
+                                "optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+                            }
+                        },
+					}
+				});
+			$("#ass_delete").attr("onclick", "ass_delete(" + pos + ")");
+		});
+
+	}
+
+	function ass_delete(pos) {
+		if (confirm("Are you sure you want to delete this assessment?")) {
+			ass_core.splice(pos, 1);
+			ass_create_table();
+			$("#edit_modal").modal('hide');
+		}
+	}
+
+	function ass_add() {
+		var new_ass = {};
+		new_ass.name = '';
+		new_ass.type = '';
+		new_ass.length = '';
+		new_ass.gi = 'Individual';
+		new_ass.ulos = '';
+		new_ass.weight = '0';
+		new_ass.threshold = '0';
+		ass_core.push(new_ass);
+		ass_create_table();
+	}
+
+	function ass_apply_changes() {
+		var data = $("#edit_modal_body").alpaca().getValue();
+		var pos = data.pos;
+		// Define anything empty
+		if (data.name == undefined) data.name = '';
+		if (data.type == undefined) data.type = '';
+		if (data.length == undefined) data.length = '';
+		if (data.gi == undefined) data.gi = '';
+		if (data.ulos == undefined) data.ulos = '';
+		if (data.weight == undefined) data.weight = '0';
+		if (data.threshold == undefined) data.threshold = '0';
+		// Update values
+		ass_core[pos].name = data.name.trim();
+		ass_core[pos].type = data.type.trim();
+		ass_core[pos].length = data.length.trim();
+		ass_core[pos].gi = data.gi;
+		ass_core[pos].ulos = data.ulos.trim();
+		ass_core[pos].weight = data.weight;
+		ass_core[pos].threshold = data.threshold;
+		// Recreate table with updated data
+		ass_create_table();
+	}
+
+	function format_data_for_form(data) {
+        ass_core = null;
+        alt_ass = [];
+
+		if (data.assessments != undefined) {
+	        for (var i = 0; i < data.assessments.length; i++) {
+	            group = data.assessments[i];
+	            console.log(group);
+	            if (group.type === 'Core') {
+	                g_ass_core_group = group;
+	                ass_core = group.assessments.slice();
+	                console.log(ass_core);
+	            } else {
+	                alt_ass.push(group);
+	            }
+	        }
+		}
+
+		ass_create_table(ass_core);
+
+		var result = {
+			"id": data.id,
+		    "a": {
+                //"ass": ass_core,
+                "alt_ass": alt_ass,
+            },
+		    "b": {
+		        "three_hour_exam": data.three_hour_exam
+		    },
+		    "c": {
+		        "unit_threshold": data.unit_threshold
+		    },
+		    "d": {
+		        "assessments_not_mandatory": data.assessments_not_mandatory
+		    },
+		    "e": {
+		        "attendance_requirements": data.attendance_requirements
+		    }
+		};
+		return result;
+	}
+
+	function populate_form(data) {
+		$("#form1").html("");
+		$("#form1").alpaca({
+			"data": data,
+			"schema": {
+				"title": "D2.5 Assessment",
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"title": "ID"
+					},
+					"a": {
+						"title": "a. Assessment details</legend><label class='control-label alpaca-control-label'>Please complete the table(s) below, using the list of items in the <a data-toggle='modal' data-target='#myModal'>Assessment Chart</a>, which is based on terms used in the Curriculum Mapping Tool. </label><br><div id='assessments'></div><legend style=' border-bottom : 0; height: 0px; padding: 0; margin: 0'>",
+                        "type": "object",
+                        "properties": {
+                            "alt_ass": {
+                                "title": "</legend><label class='control-label alpaca-control-label'>For alternate assessment(s) (e.g. Summer session / Online mode) where assessment differs for a session or mode of offer, please indicate the session/mode below and complete the table.  Add more tables if required</label><legend style=' border-bottom : 0; height: 0px; padding: 0; margin: 0'>",
+                                "type": "array",
+                                "items": {
+
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "string",
+                                            "title": "ID"
+                                        },
+                                        "type": {
+                                            "type": "string",
+                                            "title": "Type",
+                                            "default": "alt",
+                                        },
+                                        "session": {
+                                            "type": "string",
+                                            "title": "Alternative Session",
+                                            "enum": {{ sessions|json_encode|raw }}
+                                        },
+                                        "mode": {
+                                            "type": "string",
+                                            "title": "Alternative Mode",
+											"enum": {{ modes|json_encode|raw }}
+                                        },
+                                        "rationale": {
+                                            "type": "string",
+                                            "title": "Rationale for alternate assessment",
+                                        },
+                                        "assessments": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string",
+                                                        "title": "ID"
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "title": "<a data-toggle='modal' data-target='#assessment_modal'>Name <span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span></a>"
+                                                    },
+                                                    "type": {
+                                                        "type": "string",
+                                                        "title": "Type",
+                                                    },
+                                                    "length": {
+                                                        "type": "string",
+                                                        "title": "<a data-toggle='modal' data-target='#length_modal'>Length <span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span></a>"
+                                                    },
+													"gi": {
+                                                        "type": "string",
+                                                        "title": "Group/Individual",
+                                                        "enum": ["Individual", "Group", "Both (Individual & Group)"]
+                                                    },
+                                                    "ulos": {
+                                                        "type": "string",
+                                                        "title": "<a data-toggle='modal' data-target='#ulo_modal'>ULO's <span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span></a>"
+                                                    },
+                                                    "weight": {
+                                                        "type": "number",
+                                                        "title": "<a data-toggle='modal' data-target='#weight_modal'>Weight <span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span></a>"
+                                                    },
+                                                    "threshold": {
+                                                        "type": "string",
+                                                        "title": "<a data-toggle='modal' data-target='#threshold_modal'>Threshold <span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span></a>",
+                                                        "enum": ["0", "1"]
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+					},
+					"b": {
+						"title": "b.",
+						"type": "object",
+						"properties": {
+							"three_hour_exam": {
+								"type": "string",
+								"title": "The standard duration for a final examination is two hours, including reading time. Three-hour final examinations, including reading time, are only permitted if appropriate justification in accordance with the <a href='http://policies.uws.edu.au/masterlist.php#e' target='_blank'>Examinations Policy</a> is provided below."
+							}
+						}
+					},
+					"c": {
+						"title": "c.",
+						"type": "object",
+						"properties": {
+							"unit_threshold": {
+								"type": "string",
+								"title": "If there is a threshold for this Unit (i.e. students must pass the exam or other assessment component to pass the Unit), please provide justification for the threshold."
+							}
+						}
+					},
+					"d": {
+						"title": "d.",
+						"type": "object",
+						"properties": {
+							"assessments_not_mandatory": {
+								"type": "string",
+								"title": "If there are assessment items listed above which are not mandatory, please identify and provide rationale, in accordance with the <a href='http://policies.uws.edu.au/masterlist.php#a' target='_blank'>Assessment Policy - Criteria and Standards-Based Assessment</a>."
+							}
+						}
+					},
+					"e": {
+						"title": "e.",
+						"type": "object",
+						"properties": {
+							"attendance_requirements": {
+								"type": "string",
+								"title": "If there are any mandatory attendance requirements (e.g. for accreditation purposes), please provide details and rationale."
+							}
+						}
+					}
+				}
+			},
+			"toolbarSticky": true,
+			"options": {
+				"events": {
+                    "change": function() {
+						g_has_changed = true;
+                        console.log("Change");
+                    }
+				},
+				"helpers": [
+					"The assessment regime must be consistent with the University Assessment and Examination policies. Each assessment item must align with one or more Unit Learning Outcomes and each Learning Outcome must be listed against at least one assessment item.",
+					"Refer to the <a href='http://policies.uws.edu.au/masterlist.php#a' target='_blank'>Assessment Policy</a>, the <a href='http://policies.uws.edu.au/masterlist.php#e' target='_blank'>Examinations Policy</a> and the <a href='http://policies.uws.edu.au/masterlist.php#u' target='_blank'>Unit Outline and Learning Guides Policy</a>.  "
+				],
+				"fields": {
+					"id": {
+						"type": "hidden"
+					},
+					"a": {
+                        "fields": {
+                            "alt_ass": {
+                                "toolbarSticky": true,
+                                "type": "array",
+                                "items": {
+                                    "fields": {
+                                        "id": {
+                                            "type": "hidden"
+                                        },
+                                        "type": {
+                                            "type": "hidden"
+                                        },
+                                        "session": {
+                                            "type": "select"
+                                        },
+                                        "rationale": {
+                                            "type": "textarea"
+                                        },
+                                        "assessments": {
+                                            "type": "table",
+                                            "items": {
+                                                "fields": {
+                                                    "id": {
+                                                        "type": "hidden"
+                                                    },
+                                                    "course_code": {
+                                                        "size": 4
+                                                    },
+                                                    "type": {
+                                                        "type": "textarea",
+														"rows": 2,
+														"cols": 8,
+                                                    },
+													"gi": {
+                                                        "type": "select",
+														"sort": false,
+                                                        "optionLabels": ["Individual", "Group", "Both (Individual & Group)"],
+														"removeDefaultNone": true,
+                                                        "size": 1
+                                                    },
+                                                    "threshold": {
+                                                        "type": "select",
+                                                        "optionLabels": ["No", "Yes"],
+														"removeDefaultNone": true,
+                                                        "size": 1
+                                                    },
+                                                    "weight": {
+                                                        "size": 1
+                                                    },
+                                                    "ulos": {
+                                                        "size": 7
+                                                    }
+                                                }
+                                            },
+                                            "actionbar": {
+                                                 "actions": [{
+                                                     "action": "add",
+                                                     "click": function() {
+                                                        var value = this.getValue();
+                                                        value.push({
+                                                        });
+                                                        this.setValue(value);
+                                                    }
+                                                 }, {
+                                                     "action": "remove"
+                                                 }, {
+                                                     "action": "up",
+                                                     "enabled": false
+                                                 }, {
+                                                     "action": "down",
+                                                     "enabled": false
+                                                 }]
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+					},
+					"b": {
+						"fields": {
+							"three_hour_exam": {
+								"type": "textarea"
+							}
+						}
+					},
+					"c": {
+						"fields": {
+							"unit_threshold": {
+								"type": "textarea"
+							}
+						}
+					},
+					"d": {
+						"fields": {
+							"assessments_not_mandatory": {
+								"type": "textarea"
+							}
+						}
+					},
+					"e": {
+						"fields": {
+							"attendance_requirements": {
+								"type": "textarea",
+								"helpers": [
+									"If there is a mandatory attendance requirement for the Unit for accreditation purposes, you must provide a pedagogical rationale as to why attendance is mandatory and details of how the attendance requirement will be monitored and assessed."
+								],
+							}
+						}
+					}
+				},
+				"form": {
+					"buttons": {
+						"submit": {
+							"title": "Save",
+							"click": save
+						}
+					}
+				}
+			},
+			"postRender": function(control) {
+				ass_create_table();
+				$('[data-key="submit"]').addClass("btn-primary");
+				$('[data-alpaca-field-id="alpaca4"]').addClass("alpaca-field-object");
+				// for (var i = 0; i < 100; i++) {
+					// $('[name="_' + i + '_number"]').width(17);
+					// $('[data-alpaca-container-item-name="_' + i + '_weight"]').width(50);
+					// $('[data-alpaca-container-item-name="_' + i + '_ulos"]').width(100);
+					// $('[data-alpaca-container-item-name="_' + i + '_threshold"]').width(80);
+					// $('[data-alpaca-container-item-name="_' + i + '_type"]').width(105);
+				// }
+				$(".actionbar").width(80);
+			}
+		});
+	}
+
+	function save() {
+		if (g_lock){
+			return;
+		}
+		g_lock = true;
+		$(".alpaca-form-button-submit").addClass("disabled");
+		$(".alpaca-form-button-submit").html("Saving...");
+
+		var data = $("#form1").alpaca().getValue();
+
+        // Variables to be submitted
+        var deleted = {};
+        deleted.groups = null;
+        deleted.assessments = null;
+
+        // Extract all assessment items and groups from form data
+        var new_assessments = [];
+        var groups = [];
+        var core_group = {};
+        if (g_ass_core_group != null) {
+            core_group.id = g_ass_core_group.id;
+        }
+        core_group.type = "Core";
+        core_group.assessments = ass_core.slice();//data.a.ass;
+        new_assessments = ass_core.slice();//data.a.ass;
+        groups.push(core_group);
+		if (data.a.alt_ass != undefined) {
+	        for (var i = 0; i < data.a.alt_ass.length; i++) {
+	            groups.push(data.a.alt_ass[i]);
+				if (data.a.alt_ass[i].assessments != undefined) {
+		            for (var j = 0; j < data.a.alt_ass[i].assessments.length; j++) {
+		                new_assessments.push(data.a.alt_ass[i].assessments[j]);
+		            }
+				}
+	        }
+		}
+
+        // Extract all assessment items from old data
+        var old_assessments = [];
+		if (g_data.assessments != undefined) {
+	        for (var i = 0; i < g_data.assessments.length; i++) {
+	            group = g_data.assessments[i];
+				if (group.assessments != undefined) {
+		            for (var j = 0; j < group.assessments.length; j++) {
+		                old_assessments.push(group.assessments[j]);
+		            }
+				}
+	        }
+		}
+
+        // Find deleted assessment items
+        deleted.assessments = find_deleted_ids(old_assessments, new_assessments);
+
+        // Find delete assessment groups
+        deleted.groups = find_deleted_ids(g_data.assessments, groups);
+
+        // Update core values
+		g_data.id = data.id;
+		g_data.three_hour_exam = data.b.three_hour_exam;
+		g_data.unit_threshold = data.c.unit_threshold;
+		g_data.assessments_not_mandatory = data.d.assessments_not_mandatory;
+		g_data.attendance_requirements = data.e.attendance_requirements;
+		g_data.assessments = groups;
+
+		// Replace undefined values with empty string
+		for (var variable in g_data) {
+			if (g_data.hasOwnProperty(variable)) {
+				if (typeof g_data[variable] === 'undefined') {
+					g_data[variable] = "";
+				}
+			}
+		}
+
+        console.log("g_data: ", g_data);
+        console.log("delete group: ", deleted.groups);
+        console.log("delete ass: ", deleted.assessments);
+
+		$.ajax({
+			url: '{{ urlFor('/variation/put/section2-5', { "variation_id" : variation_id }) }}',
+			dataType: 'text',
+			data: {data : JSON.stringify(g_data), delete : JSON.stringify(deleted)},
+			type: 'POST',
+			success: function(data){
+				console.log(data);
+				if (data=="success") {
+					//$('html, body').animate({scrollTop: $("body").offset().top},200);
+					$('#submitted').hide();
+					$('#submitted').fadeIn(1000);
+					setTimeout(function() {
+						$('#submitted').fadeOut(2000);
+					}, 2000);
+					pull_data();
+					g_has_changed = false;
+				} else {
+					alert("Error: Could not save.\nMessage: " + data);
+				}
+				$(".alpaca-form-button-submit").removeClass("disabled");
+				$(".alpaca-form-button-submit").html("Save");
+				g_lock = false;
+			}
+		});
+	}
+
+    function find_deleted_ids(old, current) {
+        var deleted = [];
+ 		if (old != null) {
+			for (var i = 0; i < old.length; i++) {
+				var find_id = old[i].id
+				var found = false;
+				for (var j = 0; j < current.length; j++) {
+					if (current[j].id == find_id) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					deleted.push(find_id);
+				}
+			}
+		}
+        return deleted;
+    }
+</script>
+{% endblock %}
+
+{% block css %}
+<style media="screen">
+	#submitted {
+		position: fixed;
+		top: 75px;
+		right: 50px;
+		width: 200px;
+	}
+
+	.ass_table {
+		border: 1px solid #ddd;
+		margin-bottom: 8px;
+	}
+
+	.ass_table th:nth-child(2) {
+		width:150px;
+	}
+
+	.ass_table th:nth-child(3) {
+		width:160px;
+	}
+
+	.ass_table td, .ass_table th {
+		border: 1px solid #ddd;
+		padding: 5px;
+	}
+
+	.ass_table tr:hover {
+		background-color: lightblue;
+		cursor: pointer;
+	}
+
+	.ass_table tr:first-child:hover  {
+		background-color: white;
+		cursor: default;
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Section 2: Academic Details</h1>
+{{ include('variation/edit/_tabs.twig') }}
+<div style="text-align: left;">
+<br>
+<div id='submitted' hidden><div class="alert alert-success" role="alert">Data Saved <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></div></div>
+
+<div id="form1"></div>
+
+<!-- Modals -->
+<div class="modal fade" id="edit_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="myModalLabel">Assessment Item</h4>
+            </div>
+            <div class="modal-body" id="edit_modal_body"></div>
+            <div class="modal-footer">
+                <div class="row" style="text-align: center">
+                    <div class="col-md-4">
+						<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="button" class="btn btn-warning" onclick="ass_delete()" id="ass_delete">Delete</button>
+					</div>
+                    <div class="col-md-4">
+						<button type="button" class="btn btn-primary" data-dismiss="modal" onclick="ass_apply_changes()">Apply</button>
+					</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="assessment_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title" id="myModalLabel">Assessment Item</h4>
+			</div>
+			<div class="modal-body">
+				<b>Assessment Item</b>
+				<p>
+					To complete column one, please describe the assessment item by entering the assessment item (descriptor) from the <a data-toggle='modal' data-target='#myModal'>Assessment Chart</a>.
+					If required for clarity, provide additional information. For example, if one assessment comprises four quizzes, explain how many
+					have to be attempted to be regarded as submission.
+				</p>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="weight_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title" id="myModalLabel">Assessment percentages</h4>
+			</div>
+			<div class="modal-body">
+				<b>Assessment percentages</b>
+				<p>
+					Consistent with the University policies on assessment and examination, exact assessment percentages should be given
+					(not ranges). Any variation to the assessment noted here requires re-submission of the Unit proposal for approval
+					by the School Academic Committee.
+				</p>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="threshold_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title" id="myModalLabel">Threshold requirement</h4>
+			</div>
+			<div class="modal-body">
+				<b>Threshold requirement</b>
+				<p>
+					If there is a threshold for this Unit (i.e. students must pass the exam or other assessment component to pass the
+					Unit), you must provide justification for the threshold. The <a href="http://www.uws.edu.au/__data/assets/pdf_file/0004/449860/PVC5557_Assessment_Guide_LR3.pdf" target="_blank">Assessment Guide</a> provides examples for identifying
+					thresholds and other levels of standards for assessment criteria.
+				</p>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="length_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title" id="myModalLabel">Length</h4>
+			</div>
+			<div class="modal-body">
+				<b>Length</b>
+				<p>
+					Indicate word length for written assignments; duration in hours for exams, oral presentations etc. For other types of
+					 assessment, provide sufficient details for work required and how item will be assessed (e.g. group assessment).
+				</p>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="ulo_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title" id="myModalLabel">Unit Learning Outcomes</h4>
+			</div>
+			<div class="modal-body">
+				<b>Unit Learning Outcomes</b>
+				<p>
+					Indicate the assessment item to which the Learning Outcomes listed at Question 2.4 relate.
+				</p>
+				<p>
+					<h3>D2.4 Unit Learning Outcomes (ULO)</h3>
+					<p>
+						{% for outcome in outcomes %}
+							{{ outcome.number }}.
+							{{ outcome.outcome }}<br>
+						{% endfor %}
+					</p>
+				</p>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="type_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title" id="myModalLabel">Type</h4>
+			</div>
+			<div class="modal-body">
+				<b>Type</b>
+				<p>
+					Information provided in the Type of Assessment column will not be included in the Unit Outline, but can be used in the Learning Guide
+				</p>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title" id="myModalLabel">Assessment Chart</h4>
+			</div>
+			<div class="modal-body">
+<table border="1">
+    <tbody>
+        <tr>
+            <td>
+                <b>Assessment Item</b>
+            </td>
+            <td>
+                <b>Detail</b>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Annotated Bibliography</td>
+            <td>
+                A list of relevant research/work on a topic, with brief analysis or evaluation justifying the relevance to the topic</td>
+        </tr>
+        <tr>
+            <td>
+                Applied Project</td>
+            <td>
+                A product where theory is applied, or discovered through reflective practice, to create a model, a design, a program, a composition, or other creative work</td>
+        </tr>
+        <tr>
+            <td>
+                Case Study</td>
+            <td>
+                A description and/or analysis of a real-life situation</td>
+        </tr>
+        <tr>
+            <td>
+                Critical Review</td>
+            <td>
+                A written constructive criticism or judgement based on criteria</td>
+        </tr>
+        <tr>
+            <td>
+                Debate</td>
+            <td>
+                An argument for or against a specific topic, often in teams and according to certain rules</td>
+        </tr>
+        <tr>
+            <td>
+                Discourse Analysis</td>
+            <td>
+                A close examination of a spoken, written or visual text</td>
+        </tr>
+        <tr>
+            <td>
+                End-of-session Exam</td>
+            <td>
+                Assessment that is invigilated by the School and occurs during the University examination period</td>
+        </tr>
+        <tr>
+            <td>
+                Essay</td>
+            <td>
+                An extended written response to a set question, problem or issue or a sub-set of questions.</td>
+        </tr>
+        <tr>
+            <td>
+                Final Exam</td>
+            <td>
+                Assessment that is centrally coordinated and invigilated and occurs at the end of a unit of study during the University examination period</td>
+        </tr>
+        <tr>
+            <td>
+                Interview</td>
+            <td>
+                A formal meeting conducted to elicit information from a person or group</td>
+        </tr>
+        <tr>
+            <td>
+                Intra-session Exam</td>
+            <td>
+                Assessment that is invigilated by the School and occurs during a unit of study</td>
+        </tr>
+        <tr>
+            <td>
+                Learning Contract
+            </td>
+            <td>
+                Student-negotiated, self-directed assessment</td>
+        </tr>
+        <tr>
+            <td>
+                Literature Review</td>
+            <td>
+                A written paper based on systematic and explicit identification, evaluation and interpretation of existing bodies of work</td>
+        </tr>
+        <tr>
+            <td>
+                Log/Workbook</td>
+            <td>
+                A record of observations, activities or goals that have been met/not met, often in chronological order</td>
+        </tr>
+        <tr>
+            <td>
+                Multiple Choice</td>
+            <td>
+                Response to a question selected from pre-determined set of answers</td>
+        </tr>
+        <tr>
+            <td>
+                Numerical Problem Solving</td>
+            <td>
+                A comprehensive examination and analysis of information which involves the use of mathematics to generate a solution</td>
+        </tr>
+        <tr>
+            <td>
+                Participation</td>
+            <td>
+                Student engagement with content, either online or face-to-face, according to explicit criteria</td>
+        </tr>
+        <tr>
+            <td>
+                Peer Review</td>
+            <td>
+                A documented, critical judgment by students of peer work</td>
+        </tr>
+        <tr>
+            <td>
+                Portfolio</td>
+            <td>
+                A student compilation of work with a coherent structure, collected over a period of time</td>
+        </tr>
+        <tr>
+            <td>
+                Poster</td>
+            <td>
+                A representational work for public display containing text and graphic elements</td>
+        </tr>
+        <tr>
+            <td>
+                Practical</td>
+            <td>
+                A demonstration of technical/professional skills during a unit of study</td>
+        </tr>
+        <tr>
+            <td>
+                Practical Exam</td>
+            <td>
+                A demonstration of technical/professional skills invigilated by the School during the University examination period</td>
+        </tr>
+        <tr>
+            <td>
+                Presentation
+            </td>
+            <td>
+                The process of showing and/or explaining content to an audience</td>
+        </tr>
+        <tr>
+            <td>
+                Professional Placement Performance</td>
+            <td>
+                Demonstration of professional skills and abilities evaluated in a workplace context</td>
+        </tr>
+        <tr>
+            <td>
+                Professional Task</td>
+            <td>
+                An activity performed by professionals in everyday practice of the profession</td>
+        </tr>
+        <tr>
+            <td>
+                Proposal</td>
+            <td>
+                A plan for potential future work, often with justification</td>
+        </tr>
+        <tr>
+            <td>
+                Quiz</td>
+            <td>
+                Non-invigilated response to a number of questions, the format of which may include multiple choice questions (MCQs) and/or short answers</td>
+        </tr>
+        <tr>
+            <td>
+                Reflection</td>
+            <td>
+                An evaluation of student’s own learning that includes narrative and critical/ analytical thinking</td>
+        </tr>
+        <tr>
+            <td>
+                Report</td>
+            <td>
+                A structured analytical account of a project, investigation or process</td>
+        </tr>
+        <tr>
+            <td>
+                Self-Assessment</td>
+            <td>
+                An assessment of own knowledge, work, skill or ability according to criteria</td>
+        </tr>
+        <tr>
+            <td>
+                Short Answer</td>
+            <td>
+                A brief response in the form of words, symbols, or diagrams</td>
+        </tr>
+        <tr>
+            <td>
+                Simulation</td>
+            <td>
+                Action within a reproduction of a professional/disciplinary environment</td>
+        </tr>
+        <tr>
+            <td>
+                Summary</td>
+            <td>
+                A short synopsis in prose of an article, chapter or other text</td>
+        </tr>
+        <tr>
+            <td>
+                Thesis</td>
+            <td>
+                An extended piece of research designed to set up and defend an intellectual position taken by its author</td>
+        </tr>
+        <tr>
+            <td>
+                Translation</td>
+            <td>
+                Text being rendered/changed/converted from one language to another language</td>
+        </tr>
+        <tr>
+            <td>
+                Viva Voce</td>
+            <td>
+                A verbal explanation/account of a topic, problem or task</td>
+        </tr>
+    </tbody>
+</table>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}

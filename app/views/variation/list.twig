@@ -1,0 +1,89 @@
+{% extends "layouts/master.twig" %}
+
+
+{% block css %}
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/r/bs-3.3.5/jq-2.1.4,dt-1.10.8/datatables.min.css"/>
+    <style>
+        .table tbody tr td, .table thead tr th {
+            font-size: 13px;
+        }
+
+        body {
+            font-family: Calibri;
+        }
+
+		#error {
+			position: fixed;
+			top: 75px;
+			right: 50px;
+			width: 200px;
+		}
+    </style>
+{% endblock %}
+
+{% block js %}
+    <script type="text/javascript" src="https://cdn.datatables.net/r/bs-3.3.5/jqc-1.11.3,dt-1.10.8/datatables.min.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        $(document).ready(function() {
+            $('#list').DataTable();
+
+			{% if error %}
+				error = '{{ error }}';
+			{% else %}
+				error = null;
+			{% endif %}
+
+			if (error != null) {
+				$('#error_message').text(error);
+				$('#error').hide();
+				$('#error').fadeIn(500);
+				setTimeout(function() {
+					$('#error').fadeOut(2000);
+				}, 2000);
+			}
+        });
+
+    </script>
+{% endblock %}
+
+{% block content %}
+
+<h1>Variation List</h1>
+<br>
+<div id='error' hidden><div id="error_message" class="alert alert-danger" role="alert">Data Saved <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></div></div>
+
+<br>
+<div class="panel panel-default">
+  <div class="panel-body" style="text-align: left;">
+		<table id="list" class="table">
+            <thead>
+                <tr><th>ID</th><th>Type</th><th>Unit Code</th><th>Unit Name</th><th>Coordinator</th><th>School</th><th>Start</th><th>Finish</th><th>State</th></tr>
+            </thead>
+            <tbody>
+            {% for variation in variations %}
+                {% if variation.current == "1" %}
+                    <tr class="warning">
+                {% elseif variation.state == "Editing" %}
+                    <tr class="success">
+                {% elseif variation.state == "Review" %}
+                    <tr class="info">
+                {% else %}
+                    <tr>
+                {% endif %}
+                    <td><a href='{{ urlFor('/variation/dash', {'variation_id' : variation.unit_id}) }}'>{{ variation.unit_id }}</a></td>
+                    <td><a href='{{ urlFor('/variation/dash', {'variation_id' : variation.unit_id}) }}'>{{ variation.proposal_type }}</a></td>
+                    <td><a href='{{ urlFor('/variation/dash', {'variation_id' : variation.unit_id}) }}'>{{ variation.unit_code }}</a></td>
+                    <td><a href='{{ urlFor('/variation/dash', {'variation_id' : variation.unit_id}) }}'>{{ variation.unit_name }}</a></td>
+                    <td><a href='{{ urlFor('/variation/dash', {'variation_id' : variation.unit_id}) }}'>{{ variation.admin_contact }}</a></td>
+                    <td><a href='{{ urlFor('/variation/dash', {'variation_id' : variation.unit_id}) }}'>{{ schools_abv[variation.school] }}</a></td>
+					<td><a href='{{ urlFor('/variation/dash', {'variation_id' : variation.unit_id}) }}'>{{ variation.date_started }}</a></td>
+					<td><a href='{{ urlFor('/variation/dash', {'variation_id' : variation.unit_id}) }}'>{{ variation.date_finished }}</a></td>
+                    <td><a href='{{ urlFor('/variation/dash', {'variation_id' : variation.unit_id}) }}'>{{ variation.state }}</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+		</table>
+	</div>
+</div>
+{#<a href="/variation/create">Create</a>#}
+{% endblock %}

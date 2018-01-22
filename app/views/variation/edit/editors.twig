@@ -1,0 +1,272 @@
+{% extends "layouts/master.twig" %}
+
+{% block js %}
+<script>
+	var g_data = null;
+	var g_lock = false;
+	var g_has_changed = false;
+
+	window.onbeforeunload = function(event) {
+		if (g_has_changed)
+	    	return "You have unsaved changes. Are you sure you want to navigate away?";
+	};
+
+	$(document).ready(function(){
+		pull_data();
+	});
+
+	function pull_data() {
+		$.ajax({
+			url: '{{ urlFor('/variation/get/editors', { "variation_id" : variation_id }) }}',
+			method: "GET",
+			dataType: "text",
+			success: function(result) {
+				if (result != null && result != "0 results") {
+					g_data = JSON.parse(result);
+					populate_form(format_data_for_form(g_data));
+					console.log(g_data);
+				}
+			}
+		});
+	}
+
+	function format_data_for_form(data) {
+		var result = {
+			"editors": data,
+		};
+		return result;
+	}
+
+	function populate_form(data) {
+		$("#form1").html("");
+		$("#form1").alpaca({
+			"data": data,
+			"schema": {
+				"type": "object",
+				"properties": {
+					"editors": {
+						"title": "Variation Editors",
+						"type": "array",
+						"items": {
+							"type": "object",
+							"properties": {
+								"id": {
+									"type": "string",
+									"title": "ID"
+								},
+								"userid": {
+									"type": "string",
+									"title": "User ID",
+									"enum": {{ staffid|json_encode|raw }}
+								}
+							}
+						}
+					},
+				}
+			},
+			"toolbarSticky": true,
+			"options": {
+				"events": {
+                    "change": function() {
+						g_has_changed = true;
+                        console.log("Change");
+                    }
+				},
+				"fields": {
+					"editors": {
+						"helpers": [
+						],
+						"type": "table",
+						"items": {
+							"fields": {
+								"id": {
+									"type": "hidden"
+								},
+								"userid": {
+									"type": "select",
+									"optionLabels": {{ staffname|json_encode|raw }}
+								},
+								"resource_type": {
+		                    		"type": "select",
+		                		}
+							}
+						},
+						"actionbar": {
+							 "actions": [{
+								 "action": "add",
+								 "click": function() {
+									var value = this.getValue();
+									value.push({
+									});
+									this.setValue(value);
+								}
+							 }, {
+								 "action": "remove"
+							 }, {
+								 "action": "up",
+								 "enabled": false
+							 }, {
+								 "action": "down",
+								 "enabled": false
+							 }]
+						}
+					},
+				},
+				"form": {
+				   "buttons": {
+					   "submit": {
+						   "title": "Save",
+						   "click": save
+					   }
+				   }
+			   }
+		   },
+			"postRender": function(control) {
+				$('[data-key="submit"]').addClass("btn-primary");
+				$('[data-alpaca-container-item-name="d34"]').addClass("alpaca-field-object");
+				$('[data-alpaca-container-item-name="c"]').addClass("alpaca-field-object");
+				// for (var i = 0; i < 100; i++) {
+					// $('[name="_' + i + '_number"]').width(17);
+					// $('[data-alpaca-container-item-name="_' + i + '_weight"]').width(50);
+					// $('[data-alpaca-container-item-name="_' + i + '_ulos"]').width(100);
+					// $('[data-alpaca-container-item-name="_' + i + '_threshold"]').width(80);
+					// $('[data-alpaca-container-item-name="_' + i + '_type"]').width(105);
+				// }
+				$(".actionbar").width(80);
+			}
+		});
+	}
+
+	function find_deleted(loaded, modified) {
+		var deleted = [];
+		if (loaded != null) {
+			for (var i = 0; i < loaded.length; i++) {
+				var find_id = loaded[i].id
+				var found = false;
+				for (var j = 0; j < modified.length; j++) {
+					if (modified[j].id == find_id) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					deleted.push(find_id);
+				}
+			}
+		}
+		return deleted;
+	}
+
+	function save() {
+		var userid = '{{ user.userid }}';
+		var data = $("#form1").alpaca().getValue();
+		var found = false;
+		console.log(userid);
+		console.log(data);
+		for (var i = 0; i < data.editors.length; i++) {
+			if (data.editors[i].userid === userid) {
+				found = true;
+			}
+		}
+
+		if (!found) {
+			if (confirm("You have removed yourself! Do you want to add yourself as an editor?")) {
+				return;
+			}
+		}
+
+		if (g_lock){
+			return;
+		}
+		g_lock = true;
+		$(".alpaca-form-button-submit").addClass("disabled");
+		$(".alpaca-form-button-submit").html("Saving...");
+
+
+		console.log(JSON.stringify(data));
+
+		var deleted = find_deleted(g_data, data.editors);
+
+		g_data = data.editors;
+
+		var staff = {{ staff|json_encode|raw }};
+		for (var i = 0; i < g_data.length; i++) {
+			g_data[i].name = staff[g_data[i].userid];
+		}
+
+		// Replace undefined values with empty string
+		for (var variable in g_data) {
+			if (g_data.hasOwnProperty(variable)) {
+				if (typeof g_data[variable] === 'undefined') {
+					g_data[variable] = "";
+				}
+			}
+		}
+
+		console.log(g_data);
+
+		console.log(deleted);
+
+		$.ajax({
+			url: '{{ urlFor('/variation/put/editors', { "variation_id" : variation_id }) }}',
+			dataType: 'text',
+			data: {data : JSON.stringify(g_data), delete : JSON.stringify(deleted)},
+			type: 'POST',
+			success: function(data){
+				console.log(data);
+				if (data=="success") {
+					//$('html, body').animate({scrollTop: $("body").offset().top},200);
+					$('#submitted').hide();
+					$('#submitted').fadeIn(1000);
+					setTimeout(function() {
+						$('#submitted').fadeOut(2000);
+					}, 2000);
+					pull_data();
+					g_has_changed = false;
+				} else {
+					alert("Error: Could not save.\nMessage: " + data);
+				}
+				$(".alpaca-form-button-submit").removeClass("disabled");
+				$(".alpaca-form-button-submit").html("Save");
+				g_lock = false;
+			}
+		});
+	}
+</script>
+{% endblock %}
+
+{% block css %}
+<style media="screen">
+	#submitted {
+		position: fixed;
+		top: 75px;
+		right: 50px;
+		width: 200px;
+	}
+
+	.class_table, .class_table td, .class_table th {
+		border: 1px solid black
+	}
+
+	.class_table th:first-child {
+		width: 120px;
+	}
+
+	.class_table td, .class_table th {
+		padding: 5px;
+	}
+
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Editors</h1>
+<div style="text-align: left;">
+<br>
+<div id='submitted' hidden><div class="alert alert-success" role="alert">Data Saved <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></div></div>
+
+<div id="form1"></div>
+
+{% endblock %}

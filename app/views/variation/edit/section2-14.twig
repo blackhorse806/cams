@@ -1,0 +1,394 @@
+{% extends "layouts/master.twig" %}
+
+{% block js %}
+<script>
+	var g_data = null;
+	var g_lock = false;
+	var g_has_changed = false;
+
+	window.onbeforeunload = function(event) {
+		if (g_has_changed)
+	    	return "You have unsaved changes. Are you sure you want to navigate away?";
+	};
+
+	$(document).ready(function(){
+		pull_data();
+	});
+
+	function pull_data() {
+		$.ajax({
+			url: '{{ urlFor('/variation/get/section2-14', { "variation_id" : variation_id }) }}',
+			method: "GET",
+			dataType: "text",
+			success: function(result) {
+				if (result != null && result != "0 results") {
+					g_data = JSON.parse(result);
+					populate_form(format_data_for_form(g_data));
+					console.log(g_data);
+				}
+			}
+		});
+	}
+
+	function format_data_for_form(data) {
+		var result = {
+			"id": data.id,
+		    "d214": {
+		        "sustainability": data.sustainability,
+				"sustainability_content_items": data.sustainability_content_items,
+				"atsi_graduate_attributes": data.atsi_graduate_attributes,
+				"atsi_content_items": data.atsi_content_items,
+		    },
+		    "d215": {
+				"accreditation": data.accreditation,
+				"accreditation_information": data.accreditation_information,
+				"accreditation_dap_consultation": data.accreditation_dap_consultation,
+			}
+		};
+		return result;
+	}
+
+	function populate_form(data) {
+		$("#form1").html("");
+		$("#form1").alpaca({
+			"data": data,
+			"schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"title": "ID"
+					},
+					"d214": {
+						"title": "D2.14 Western Sydney University Strategic Initiatives",
+						"type": "object",
+						"properties": {
+							"sustainability": {
+								"type": "string",
+								"title": "a. Does the unit have a sustainability focus?",
+								"enum": ["0", "1"]
+							},
+							"sustainability_content_items": {
+								"type": "string",
+								"title": "If yes, please indicate which content items have a sustainability focus:"
+							},
+							"atsi_graduate_attributes": {
+								"type": "string",
+								"title": "b. Does this unit contribute to achieving an Aboriginal & Torres Strait Islander Graduate Attribute?",
+								"enum": ["0", "1"]
+							},
+							"atsi_content_items": {
+								"type": "string",
+								"title": "If yes, please indicate which content items have an Aboriginal & Torres Strait Islander focus:"
+							}
+						},
+						"dependencies": {
+							"sustainability_content_items": ["sustainability"],
+							"atsi_content_items": ["atsi_graduate_attributes"]
+						}
+					},
+					"d215": {
+						"title": "D2.15 Impact on existing professional accreditation",
+						"type": "object",
+						"properties": {
+							"accreditation": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"properties": {
+										"id": {
+											"type": "string",
+											"title": "ID"
+										},
+										"code": {
+											"type": "string",
+											"title": "Course or Specialisation"
+										},
+										"accreditor": {
+											"type": "string",
+											"title": "Accrediting Body",
+										},
+										"start_date": {
+											"type": "string",
+											"title": "Start Date"
+										},
+										"end_date": {
+											"type": "string",
+											"title": "End Date"
+										},
+										"review_date": {
+											"type": "string",
+											"title": "Review Date"
+										}
+									}
+								}
+							},
+							"accreditation_information": {
+								"type": "string",
+								"title": "b. Additional information "
+							},
+							"accreditation_dap_consultation": {
+								"type": "string",
+								"title": "c. Details of consultation with Directors of Academic Programs (DAPs)"
+							},
+						}
+					}
+				}
+			},
+			"toolbarSticky": true,
+			"options": {
+				"events": {
+                    "change": function() {
+						g_has_changed = true;
+                        console.log("Change");
+                    }
+				},
+				"fields": {
+					"id": {
+						"type": "hidden"
+					},
+					"d214": {
+						"fields": {
+							"sustainability": {
+								"type": "select",
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+							},
+							"sustainability_content_items": {
+								"type": "textarea",
+								"dependencies": {
+				                    "sustainability": "1"
+				                }
+							},
+							"atsi_graduate_attributes": {
+								"type": "select",
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+							},
+							"atsi_content_items": {
+								"type": "textarea",
+								"dependencies": {
+									"atsi_graduate_attributes": "1"
+				                }
+							}
+						}
+					},
+					"d215": {
+						"helpers": [
+							"Professional accreditation is an important marketing tool for the University, as well as being a crucial academic feature of a Course; therefore, any information relating to professional accreditation cited in publications must be accurate. Information will only be published where the appropriate evidence has been provided to the Course Data Management team for recording in TRIM.",
+							"Professional Accreditation means external accreditation of Curriculum (Courses and/or Unit sets) by relevant professional bodies. The Course Data Management (CDM) team is responsible for updating information on the web Handbook and in Callista in relation to Professional Accreditation of Curriculum. Schools are responsible for managing Professional Accreditation, including maintaining a complete record of all supporting documentation in TRIM. <p><label>a. If this Unit contributes to external professional accreditation for any Course or Specialisation, please provide details below.</label></p>"
+						],
+						"fields": {
+							"accreditation": {
+								"helpers": [
+									"If a Unit forms part of the accreditation requirements for one or more Courses, any changes to the Unit must include advice as to impact of the change on those accreditation requirements. ",
+									"A list of Courses with professional accreditation is available on the web accessible via a link from the <a href='http://www.westernsydney.edu.au/currentstudents/current_students/applying_to_study/uws_courses_with_professional_accreditation' target='_blank'>web Handbook</a>"
+								],
+								"type": "table",
+								"items": {
+									"fields": {
+										"id": {
+											"type": "hidden"
+										},
+										"code": {
+											"size": 1
+										},
+										"start_date": {
+											"size": 1
+										},
+										"end_date": {
+											"size": 1
+										},
+										"review_date": {
+											"size": 1
+										}
+									}
+								},
+								"actionbar": {
+									 "actions": [{
+										 "action": "add",
+										 "click": function() {
+											var value = this.getValue();
+											value.push({
+											});
+											this.setValue(value);
+										}
+									 }, {
+										 "action": "remove"
+									 }, {
+										 "action": "up",
+										 "enabled": false
+									 }, {
+										 "action": "down",
+										 "enabled": false
+									 }]
+								}
+							},
+							"accreditation_information": {
+								"type": "textarea",
+								"helpers": [
+									"Information can be included here on the current status of professional accreditation if professional accreditation is under review or still being sought, or if the Unit has professional accreditation in its own right, a statement for the handbook can be provided here."
+								]
+							},
+							"accreditation_dap_consultation": {
+								"type": "textarea",
+								"helpers": [
+									"Please provide details of the feedback provided by DAPs for any affected Course and the relevant accrediting body, including how any issues have been resolved.",
+								]
+							}
+						}
+					}
+				},
+				"form": {
+				   "buttons": {
+					   "submit": {
+						   "title": "Save",
+						   "click": save
+					   }
+				   }
+			   }
+		   },
+			"postRender": function(control) {
+				$('[data-key="submit"]').addClass("btn-primary");
+				$('[data-alpaca-container-item-name="d27"]').addClass("alpaca-field-object");
+				$('[data-alpaca-container-item-name="d28"]').addClass("alpaca-field-object");
+				$('[data-alpaca-container-item-name="d29"]').addClass("alpaca-field-object");
+				$('[data-alpaca-container-item-name="d210"]').addClass("alpaca-field-object");
+				// for (var i = 0; i < 100; i++) {
+					// $('[name="_' + i + '_number"]').width(17);
+					// $('[data-alpaca-container-item-name="_' + i + '_weight"]').width(50);
+					// $('[data-alpaca-container-item-name="_' + i + '_ulos"]').width(100);
+					// $('[data-alpaca-container-item-name="_' + i + '_threshold"]').width(80);
+					// $('[data-alpaca-container-item-name="_' + i + '_type"]').width(105);
+				// }
+				$(".actionbar").width(80);
+			}
+		});
+	}
+
+	function find_deleted(loaded, modified) {
+		var deleted = [];
+		if (loaded != null) {
+			for (var i = 0; i < loaded.length; i++) {
+				var find_id = loaded[i].id
+				var found = false;
+				for (var j = 0; j < modified.length; j++) {
+					if (modified[j].id == find_id) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					deleted.push(find_id);
+				}
+			}
+		}
+		return deleted;
+	}
+
+	function save() {
+		if (g_lock){
+			return;
+		}
+		g_lock = true;
+		$(".alpaca-form-button-submit").addClass("disabled");
+		$(".alpaca-form-button-submit").html("Saving...");
+
+		var data = $("#form1").alpaca().getValue();
+		console.log(JSON.stringify(data));
+
+		var deleted = find_deleted(g_data.accreditation, data.d215.accreditation);
+
+		g_data.id = data.id;
+		g_data.sustainability = data.d214.sustainability;
+		g_data.sustainability_content_items = data.d214.sustainability_content_items;
+		g_data.atsi_graduate_attributes = data.d214.atsi_graduate_attributes;
+		g_data.atsi_content_items = data.d214.atsi_content_items;
+		g_data.accreditation_information = data.d215.accreditation_information;
+		g_data.accreditation_dap_consultation = data.d215.accreditation_dap_consultation;
+		g_data.accreditation = data.d215.accreditation;
+
+		// Replace undefined values with empty string
+		for (var variable in g_data) {
+			if (g_data.hasOwnProperty(variable)) {
+				if (typeof g_data[variable] === 'undefined') {
+					g_data[variable] = "";
+				}
+			}
+		}
+
+		console.log(g_data);
+
+		console.log(deleted);
+
+		$.ajax({
+			url: '{{ urlFor('/variation/put/section2-14', { "variation_id" : variation_id }) }}',
+			dataType: 'text',
+			data: {data : JSON.stringify(g_data), delete : JSON.stringify(deleted)},
+			type: 'POST',
+			success: function(data){
+				console.log(data);
+				if (data=="success") {
+					//$('html, body').animate({scrollTop: $("body").offset().top},200);
+					$('#submitted').hide();
+					$('#submitted').fadeIn(1000);
+					setTimeout(function() {
+						$('#submitted').fadeOut(2000);
+					}, 2000);
+					pull_data();
+					g_has_changed = false;
+				} else {
+					alert("Error: Could not save.\nMessage: " + data);
+				}
+				$(".alpaca-form-button-submit").removeClass("disabled");
+				$(".alpaca-form-button-submit").html("Save");
+				g_lock = false;
+			}
+		});
+	}
+</script>
+{% endblock %}
+
+{% block css %}
+<style media="screen">
+	#submitted {
+		position: fixed;
+		top: 75px;
+		right: 50px;
+		width: 200px;
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Section 2: Academic Details</h1>
+{{ include('variation/edit/_tabs.twig') }}
+<div style="text-align: left;">
+<br>
+<div id='submitted' hidden><div class="alert alert-success" role="alert">Data Saved <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></div></div>
+
+<div id="form1"></div>
+
+<!-- Modals -->
+<div class="modal fade" id="example_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title" id="myModalLabel">Example</h4>
+			</div>
+			<div class="modal-body">
+				<p>
+					Assumed Knowledge for Unit 100015.4 History and Philosophy of Psychology: <br>
+					A basic understanding of core concepts of personality, cognition, learning, perception, biological, social and developmental psychology and research methods is desirable.
+				</p>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+{% endblock %}

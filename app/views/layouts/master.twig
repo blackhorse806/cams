@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+    <head>
+
+        <title>Curriculum Approval Management System</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta http-equiv="X-UA-Compatible" content="IE=9" />
+        <!-- dependencies (jquery, handlebars and bootstrap) -->
+        <script type="text/javascript" src="/js/jquery-1.11.1.min.js"></script>
+        <script type="text/javascript" src="/js/handlebars.min.js"></script>
+        <script type="text/javascript" src="/js/bootstrap.min.js"></script>
+        <!-- alpaca -->
+        <script type="text/javascript" src="/js/alpaca.min.js"></script>
+        <!-- Date time picker -->
+        <script type="text/javascript" src="/js/moment-with-locales.min.js"></script>
+        <script type="text/javascript" src="/js/bootstrap-datetimepicker.min.js"></script>
+		<script>if ( ! window.console ) console = { log: function(){} };</script>
+        {% block js %}{% endblock %}
+
+        <link type="text/css" href="/css/alpaca.min.css" rel="stylesheet"/>
+        <link type="text/css" href="/css/bootstrap.min.css" rel="stylesheet"/>
+        <link type="text/css" href="/css/bootstrap-datetimepicker.min.css" rel="stylesheet"/>
+        <link rel="stylesheet" href="/css/cams.css">
+        <link rel='shortcut icon' href='/favicon.ico' type='image/x-icon'/>
+        {% block css %}{% endblock %}
+
+    </head>
+    <body>
+        <nav class="navbar navbar-inverse navbar-fixed-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="#">CAMS</a>
+                </div>
+                <div id="navbar" class="collapse navbar-collapse">
+					{% if root != 'true' %}
+						<ul class="nav navbar-nav">
+                            {% for item in user.navigation.paths %}
+                                <li>
+                                    <a href="{{ item[1] }}">{{ item[0] }}</a>
+                                </li>
+                            {% endfor %}
+	                    </ul>
+                        <ul class="nav navbar-nav navbar-right">
+                            <li>
+                                <a href="{{ urlFor('/logout') }}">Logout</a>
+                            </li>
+                        </ul>
+                    {% endif %}
+                </div>
+                <!--/.nav-collapse -->
+            </div>
+        </nav>
+
+        <div class="container">
+            <div class="starter-template">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </body>
+</html>

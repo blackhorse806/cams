@@ -1,0 +1,36 @@
+{% extends "layouts/master.twig" %}
+
+{% block content %}
+	<h1>Main Menu</h1>
+	<div>
+		<h2>Menu Options</h2>
+		<button>Create Variation</button>
+
+	</div>
+
+	<div id="current_variations">
+		<h2>Current Variations</h2>
+		<table>
+			<tr>
+				<th>ID</th>
+				<th>Type</th>
+				<th>Code</th>
+				<th>Name</th>
+				<th>Owner</th>
+				<th>State</th>
+			</tr>
+			{% for var in variations %}
+				{% set link = 'variation/' ~ var.id ~ '/dash' %}
+				<tr>
+					<td><a href="{{ link }}">{{ var.id }}</a></td>
+					<td>{{ var.type|capitalize }}</td>
+					<td>{{ var.code }}</td>
+					<td>{{ var.name }}</td>
+					<td>{{ var.owner }}</td>
+					<td>{{ var.state|capitalize }}</td>
+				</tr>
+			{% endfor %}
+		</table>
+	</div>
+
+{% endblock %}

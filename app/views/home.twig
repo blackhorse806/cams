@@ -1,0 +1,53 @@
+{% extends "layouts/master.twig" %}
+
+{% block css %}
+    <style>
+        .menu_button {
+            width: 250px;
+        }
+
+    </style>
+{% endblock %}
+
+{% block content %}
+    <h1>Home</h1>
+	<br>
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <div class="row">
+				<br>
+                <div class="col-md-4">
+                    <button class="btn btn-lg btn-primary menu_button" onclick="window.location = '{{ urlFor('/variation/list') }}'"><span class="pull-left glyphicon glyphicon-list" aria-hidden="true"></span> Variation List</button>
+                </div>
+                {% if user.type != 'observer' %}
+                    <div class="col-md-4">
+						{% if user.type == 'admin' or user.type == 'developer' %}
+							<button class="btn btn-lg btn-primary menu_button" onclick="window.location = '{{ urlFor('/user/edit') }}'"><span class="pull-left glyphicon glyphicon-cog" aria-hidden="true"></span> Edit Users</button>
+						{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-lg btn-primary menu_button" onclick="window.location = '{{ urlFor('/variation/create') }}'"><span class="pull-left glyphicon glyphicon-new-window" aria-hidden="true"></span> Create New Unit</button>
+                    </div>
+                {% endif %}
+            </div>
+            <br><br>
+            {% if user.type != 'observer' %}
+                <div class="row">
+                    <div class="col-md-4">
+                        <button class="btn btn-lg btn-primary menu_button" onclick="window.location = '{{ urlFor('/variation/uc_list') }}'"><span class="pull-left glyphicon glyphicon-user" aria-hidden="true"></span> My Variations</button>
+                    </div>
+                </div>
+            {% endif %}
+			<br><br>
+            {% if user.type == 'admin' or user.type == 'developer' %}
+                <!-- <div class="row">
+                    <div class="col-md-4">
+						<button class="btn btn-lg btn-primary menu_button" onclick="window.location = '{{ urlFor('/variation/import_select') }}'">Import from LGMS</button>
+                    </div>
+                </div>
+				<br> -->
+            {% endif %}
+            {% block homecontent %}{% endblock %}
+        </div>
+    </div>
+{% endblock %}

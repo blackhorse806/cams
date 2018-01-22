@@ -1,0 +1,502 @@
+{% extends "layouts/master.twig" %}
+
+{% block js %}
+<script>
+	var g_data = null;
+	var g_lock = false;
+	var g_has_changed = false;
+
+	window.onbeforeunload = function(event) {
+		if (g_has_changed)
+	    	return "You have unsaved changes. Are you sure you want to navigate away?";
+	};
+
+	$(document).ready(function(){
+		pull_data();
+	});
+
+	function pull_data() {
+		$.ajax({
+			url: '{{ urlFor('/variation/get/core', { "variation_id" : variation_id }) }}',
+			method: "GET",
+			dataType: "text",
+			success: function(result) {
+				if (result != null && result != "0 results") {
+					g_data = JSON.parse(result);
+					console.log(g_data);
+					populate_form(format_data_for_form(g_data));
+				}
+			}
+		});
+
+	}
+
+	function format_data_for_form(data) {
+		var result = {
+			"id": data.id,
+            "proposal_type": data.proposal_type,
+		    "d11": {
+		        "unit_code": data.unit_code,
+		        "unit_name": data.unit_name
+		    },
+		    "d13": {
+		        "new_unit_rationale": data.new_unit_rationale
+		    },
+		    "d14": {
+		        "variation_changes": data.variation_changes,
+		        "variation_rationale": data.variation_rationale,
+		        "variation_impact": data.variation_impact
+		    },
+		    "d15": {
+		        "implementation_session": data.implementation_session,
+		        "implementation_year": data.implementation_year
+		    },
+		    "d16": {
+		        "school": data.school
+		    },
+			"d17": data.courses,
+		    "d18": {
+		        "discipline_code": data.discipline_code
+		    },
+		    "d19": {
+		        "handbook_summary": data.handbook_summary
+		    }
+		};
+		console.log(result.d11.unit_name);
+		return result;
+	}
+
+	function populate_form(data) {
+		$("#form1").html("");
+		$("#form1").alpaca({
+			"data": data,
+			"schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"title": "ID"
+					},
+					"d11": {
+						"title": "D1.1 Name and code of proposed Unit",
+						"type": "object",
+						"properties": {
+							"unit_code": {
+								"type": "string",
+								"title": "Unit Code",
+								"default": " "
+							},
+							"unit_name": {
+								"type": "string",
+								"title": "Unit Name",
+								"default": ""
+							}
+						}
+					},
+                    "proposal_type": {
+						"type": "string",
+						"title": "Proposal Type",
+                        "readonly": true
+					},
+					"d13": {
+						"title": "D1.3 New Unit",
+						"type": "object",
+						"properties": {
+							"new_unit_rationale": {
+								"type": "string",
+								"title": "a. Rationale for introduction of a new Unit"
+							}
+						}
+					},
+					"d14": {
+						"title": "D1.4 Variation",
+						"type": "object",
+						"properties": {
+							"variation_changes": {
+								"type": "string",
+								"title": "a. Please describe all of the changes to the Unit"
+							},
+							"variation_rationale": {
+								"type": "string",
+								"title": "b. Rationale for a variation to a Unit"
+							},
+							"variation_impact": {
+								"type": "string",
+								"title": "c. Impact of not making the change(s)"
+							}
+						}
+					},
+					"d15": {
+						"title": "D1.5 Session for implementation",
+						"type": "object",
+						"properties": {
+							"implementation_session": {
+								"type": "string",
+								"title": "Session",
+								"enum": {{ sessions|json_encode|raw }}
+
+							},
+							"implementation_year": {
+								"type": "string",
+								"title": "Year",
+								"enum": {{ years|json_encode|raw }}
+							}
+						}
+					},
+					"d16": {
+						"title": "D1.6 Responsible School",
+						"type": "object",
+						"properties": {
+							"school": {
+								"type": "string",
+								"title": "Please list the School responsible for the Unit.",
+								"enum": {{ schools|json_encode|raw }}
+							}
+						}
+					},
+					"d17": {
+						"title": "D1.7 Impact on Course(s)",
+						"type": "object",
+						"items": {
+							"type": "object",
+							"properties": {
+								"id": {
+									"type": "string",
+									"title": "ID"
+								},
+								"course_code": {
+									"type": "string",
+									"title": "Course Code"
+								},
+								"course_title": {
+									"type": "string",
+									"title": "Course Title"
+								},
+								"role": {
+									"type": "string",
+									"title": "<a data-toggle='modal' data-target='#role_modal'>Role <span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span></a>"
+								}
+							}
+						}
+					},
+					"d18": {
+						"title": "D1.8 Discipline code",
+						"type": "object",
+						"properties": {
+							"discipline_code": {
+								"type": "string",
+								"title": "Discipline code",
+								"readonly": {% if user_type == 'admin' or user_type == 'developer' %}false{% else %}true{% endif %},
+							}
+						}
+					},
+					"d19": {
+						"title": "D1.9	Handbook summary<a id='summary'></a>",
+						"type": "object",
+						"properties": {
+							"handbook_summary": {
+								"type": "string",
+								"title": "Please provide a brief description of the Unit for the University Online Handbook."
+							}
+						}
+					}
+				},
+                "dependencies": {
+                    "d13": ["proposal_type"],
+                    "d14": ["proposal_type"],
+                },
+			},
+			"options": {
+				{% if view != 'edit' %}
+					"view": "bootstrap-display",
+				{% endif %}
+				"events": {
+                    "change": function() {
+						g_has_changed = true;
+                        console.log("Change");
+                    }
+				},
+				"fields": {
+					"id": {
+						"hidden": true
+					},
+					"d11": {
+						"fields": {
+							"unit_code": {
+								"allowOptionalEmpty": true,
+								"helpers": [
+									"If the proposal relates to a new Unit, your Course Data Management (CDM) Officer will provide the appropriate Unit code when you send the form to them."
+								]
+							}
+						}
+					},
+					"d13": {
+						"fields": {
+							"new_unit_rationale": {
+								"type": "textarea",
+								"helpers": [
+									"Please provide an explanation as to how the Unit contributes to achieving Course level graduate attributes, standards and learning outcomes. You should include market research that demonstrates the potential demand for the Unit.",
+									"If a new unit, please explain how the Unit will contribute to the School’s Strategic Plan and Academic Program Management Plan.  Indicate how the Unit will contribute to the University’s Courses and Specialisations, and potential demand for the Unit.",
+									"If this Unit is a consolidation of several former Units into one Unit, complete this question if the Unit is derived from content of two or more existing Units that are being retired because of the new Unit being introduced."
+								]
+							}
+						},
+                        "dependencies": {
+                            "proposal_type": "New Unit"
+                        }
+					},
+					"d14": {
+						"helpers": [
+							"The information provided here should assist the relevant committees in their decision to support the changes. Provide the reasons for the changes you are making and include any pertinent information regarding the impact of not making the changes you are requesting."
+						],
+						"fields": {
+							"variation_changes": {
+								"type": "textarea",
+								"helpers": [
+									"All changes must be listed here, so that they can be included in the approval process",
+									"Note: Please note that any changes made but not listed here will not be considered approved and will therefore not be implemented."
+								]
+							},
+							"variation_rationale": {
+								"type": "textarea",
+								"helpers": [
+									"Please provide the reasons for the change(s)."
+								]
+							},
+							"variation_impact": {
+								"type": "textarea",
+								"helpers": [
+									"Please explain the impact of NOT making the change(s)"
+								]
+							},
+						},
+                        "dependencies": {
+                            "proposal_type": "Variation"
+                        }
+					},
+					"d15": {
+						"helpers": [
+							"Please indicate when the proposed Unit will first be offered, or when the variation will take effect."
+						]
+					},
+					"d16": {
+						"fields": {
+							"school": {
+								"helpers": [
+									"Please provide the name of the School that has developed the proposed Unit, or is proposing the variation to an existing Unit. If more than one School has contributed to the development, please name the School primarily responsible for the development; that should be listed as the ‘owning’ School."
+								]
+							}
+						}
+					},
+					"d17": {
+
+						"type": "table",
+						"helpers":  [
+							"<b>Courses including the Unit</b><br>You must list all Courses(s) which will include the Unit as either a compulsory core Unit or an alternate core Unit (e.g. a Unit listed in a pool of two or more Units students must select from). Do not list Courses where the Unit is only available as an elective. You can refer to the <a href='http://handbook.westernsydney.edu.au/hbook/UNIT_SEARCH.ASPX' target='blank'>Handbook</a> to check Courses in which a Unit is included. ",
+							"If your proposal is for a new Unit or the variation will result in a new Unit code (refer to the <a href='http://policies.uws.edu.au/view.associated.php?id=00117' target='blank'>Unit Approvals Authorities and Delegations</a> Guide, held in the Associated Information of the Courses and Units Approval Policy), you must also submit a New Course or Variation to a Course form to update the Course information for each affected Current Course (consult your Course Data Management Officer for advice if required).",
+							"<b>Directors of Academic Programs notification</b><br>It is important that you advise all Directors of Academic Programs responsible for all Courses or Specialisations that include the Unit to ensure that any changes to the Unit are incorporated into all affected Courses at the same time.",
+							"Please list all Course(s) that include the Unit, and the role of the Unit in each.",
+						],
+						"items": {
+							"fields": {
+								"id": {
+									"type": "hidden"
+								},
+								"course_code": {
+									"size": 2
+								}
+							}
+						},
+						"actionbar": {
+							 "actions": [{
+								 "action": "add",
+								 "click": function() {
+	  		                        var value = this.getValue();
+  		                        	value.push({});
+	  		                        this.setValue(value);
+	  		                    }
+							 }, {
+								 "action": "remove"
+							 }, {
+								 "action": "up",
+								 "enabled": false
+							 }, {
+								 "action": "down",
+								 "enabled": false
+							 }]
+						 }
+					},
+					"d18": {
+						"fields": {
+							"discipline_code": {
+								"helpers": [
+									"Field of Education - for Government reporting purposes",
+									"The discipline code is to be inserted by the Course Data Management (CDM) Officer and is endorsed by the Dean of School, prior to submission of documentation to the School Academic Committee (SAC).",
+									"The Discipline Code determines the Student Contribution Band for a Unit as well as the level of funding received by the University. The information is also required for reporting student load to the government and cannot be changed without impacting on the Unit coding. The CDM Officer will, in accordance with the information provided in the Form and the required discipline definitions, enter a code they consider appropriate with the Dean of the School’s endorsement, before SAC considers the proposal. Please consult with your CDM Officer to discuss the appropriate Discipline classification for the Unit."
+								]
+							}
+						}
+					},
+					"d19": {
+						"fields": {
+							"handbook_summary": {
+								"type": "textarea",
+								"helpers": [
+									"A single paragraph, approximately 100 words",
+									"Provide a brief summary of the Unit that will give students an overview of the Unit content, learning outcomes and any relevant information students should be aware of before enrolling in the Unit. If inherent requirements have already been identified, a statement to this effect will need to be made with reference to further information. For example, “there are some inherent requirements related to this Unit. For further information please refer to www.....” Please note that any rules such as pre-requisites should not be included in the summary as they will be identified from the responses to the relevant questions within this Form and will be displayed separately on the Handbook."
+								]
+							}
+						}
+					}
+				},
+				{% if view == 'edit' %}
+				"form": {
+				   "buttons": {
+					   "submit": {
+						   "title": "Save",
+						   "click": save
+					   }
+				   }
+				}
+				{% endif %}
+		   },
+		   "postRender": function(control) {
+               $('[data-alpaca-container-item-name="proposal_type"]').addClass("alpaca-field-object");
+               $('[data-alpaca-container-item-name="d17"]').addClass("alpaca-field-object");
+			   $('[data-key="submit"]').addClass("btn-primary");
+		   }
+		});
+	}
+
+	function save() {
+		if (g_lock){
+			return;
+		}
+		g_lock = true;
+		$(".alpaca-form-button-submit").addClass("disabled");
+		$(".alpaca-form-button-submit").html("Saving...");
+
+		var data = $("#form1").alpaca().getValue();
+		console.log(JSON.stringify(data));
+
+		var deleted = [];
+
+		if (g_data.courses != null) {
+			for (var i = 0; i < g_data.courses.length; i++) {
+				var find_id = g_data.courses[i].id
+				var found = false;
+				for (var j = 0; j < data.d17.length; j++) {
+					if (data.d17[j].id == find_id) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					deleted.push(find_id);
+				}
+			}
+		}
+
+		g_data.id = data.id;
+		g_data.unit_code = data.d11.unit_code;
+		g_data.unit_name = data.d11.unit_name
+        if (typeof data.d13 != 'undefined') {
+            g_data.new_unit_rationale = data.d13.new_unit_rationale
+        }
+        if (typeof data.d14 != 'undefined') {
+            g_data.variation_changes = data.d14.variation_changes,
+            g_data.variation_rationale = data.d14.variation_rationale,
+            g_data.variation_impact = data.d14.variation_impact
+        }
+		g_data.implementation_session = data.d15.implementation_session,
+		g_data.implementation_year = data.d15.implementation_year
+		g_data.school = data.d16.school
+		g_data.discipline_code = data.d18.discipline_code
+		g_data.handbook_summary = data.d19.handbook_summary
+		g_data.courses = data.d17;
+
+		// Replace undefined values with empty string
+		for (var variable in g_data) {
+			if (g_data.hasOwnProperty(variable)) {
+				if (typeof g_data[variable] === 'undefined') {
+					g_data[variable] = "";
+				}
+			}
+		}
+
+		console.log(g_data);
+
+		console.log(g_data.courses);
+
+		console.log(deleted);
+
+
+		$.ajax({
+			url: '{{ urlFor('/variation/put/core', { "variation_id" : variation_id }) }}',
+			dataType: 'text',
+			data: {data : JSON.stringify(g_data), delete : JSON.stringify(deleted)},
+			type: 'POST',
+			success: function(data){
+				console.log(data);
+				if (data=="success") {
+					//$('html, body').animate({scrollTop: $("body").offset().top},200);
+					$('#submitted').hide();
+					$('#submitted').fadeIn(1000);
+					setTimeout(function() {
+						$('#submitted').fadeOut(2000);
+					}, 2000);
+					pull_data();
+					g_has_changed = false;
+				} else {
+					alert("Error: Could not save.\nMessage: " + data);
+				}
+				$(".alpaca-form-button-submit").removeClass("disabled");
+				$(".alpaca-form-button-submit").html("Save");
+				g_lock = false;
+			}
+		});
+	}
+</script>
+{% endblock %}
+
+{% block css %}
+<style media="screen">
+	#submitted {
+		position: fixed;
+		top: 75px;
+		right: 50px;
+		width: 200px;
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Section 1: Proposal Details</h1>
+{{ include('variation/edit/_tabs.twig') }}
+<div style="text-align: left;">
+<br>
+<div id='submitted' hidden><div class="alert alert-success" role="alert">Data Saved <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></div></div>
+
+<div id="form1"></div>
+</div>
+
+<div class="modal fade" id="role_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	<div class="modal-dialog modal-lg" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title" id="myModalLabel">Role</h4>
+			</div>
+			<div class="modal-body">
+				<p>
+					Core / Alternate Unit or Specialisation (Key Program/ Major/ Sub-major) Unit within a Course
+				</p>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}

@@ -1,0 +1,110 @@
+<ul class="nav nav-tabs">
+	<li class="dropdown">
+		<a class="dropdown-toggle" data-toggle="dropdown" href="#">Section 1: Proposal Details
+		<span class="caret"></span></a>
+		<ul class="dropdown-menu">
+			<li>
+				<a href="{{ urlFor('/variation/edit/section1', {'variation_id': variation_id }) }}">
+					D1.1 Name and code of proposed Unit<br>
+					D1.2 Type of proposal<br>
+					D1.3 New Unit<br>
+					D1.4 Variation<br>
+					D1.5 Session for implementation<br>
+					D1.6 Responsible School<br>
+					D1.7 Impact on Course(s<br>
+					D1.8 Discipline code (Field of Education - for Government reporting purposes<br>
+					D1.9 Handbook summary
+				</a>
+			</li>
+		</ul>
+	</li>
+	<li class="dropdown">
+		<a class="dropdown-toggle" data-toggle="dropdown" href="#">Section 2: Academic Details
+		<span class="caret"></span></a>
+		<ul class="dropdown-menu">
+			<li>
+				<a href="{{ urlFor('/variation/edit/section2-1', {'variation_id': variation_id }) }}">
+					D2.1 Unit level<br>
+					D2.2 Credit point value<br>
+					D2.3 Unit content<br>
+					D2.4 Unit Learning Outcomes (ULO)
+				</a>
+			</li>
+			<hr class='tab-hr'>
+			<li>
+				<a href="{{ urlFor('/variation/edit/section2-5', {'variation_id': variation_id }) }}">
+					D2.5 Assessment
+				</a>
+			</li>
+			<hr class='tab-hr'>
+			<li>
+				<a href="{{ urlFor('/variation/edit/section2-6', {'variation_id': variation_id }) }}">
+					D2.6 Assumed knowledge<br>
+					D2.7 Pre-requisite units<br>
+					D2.8 Co-requisite units<br>
+					D2.9 Equivalent units<br>
+					D2.10 Incompatible units<br>
+					D2.11 Enrolment restrictions<br>
+					D2.12 Special requirements
+				</a>
+			</li>
+			<hr class='tab-hr'>
+			<li>
+				<a href="{{ urlFor('/variation/edit/section2-13', {'variation_id': variation_id }) }}">
+					D2.13 Work Integrated Learning (WIL)
+				</a>
+			</li>
+			<hr class='tab-hr'>
+			<li>
+				<a href="{{ urlFor('/variation/edit/section2-14', {'variation_id': variation_id }) }}">
+					D2.14 Western Sydney University Strategic Initiatives<br>
+					D2.15 Impact on existing professional accreditation
+				</a>
+			</li>
+		</ul>
+	</li>
+	<li class="dropdown">
+		<a class="dropdown-toggle" data-toggle="dropdown" href="#">Section 3: Administrative Details
+		<span class="caret"></span></a>
+		<ul class="dropdown-menu">
+			<li><a href="{{ urlFor('/variation/edit/section3-1', {'variation_id': variation_id }) }}">D3.1	Discontinuation of units</a></li>
+			<hr class='tab-hr'>
+			<li><a href="{{ urlFor('/variation/edit/section3-2', {'variation_id': variation_id }) }}">D3.2	Unit offering</a></li>
+			<hr class='tab-hr'>
+			<li>
+				<a href="{{ urlFor('/variation/edit/section3-3', {'variation_id': variation_id }) }}">
+					D3.3 Equivalent Student Learning Experience across Learning Environments<br>
+					D3.4 Prescribed Unit text<br>
+					D3.5 Library resources<br>
+					D3.6 Supply of facilities/resources from other organisations
+				</a>
+			</li>
+			<hr class='tab-hr'>
+			<li>
+				<a href="{{ urlFor('/variation/edit/section3-7', {'variation_id': variation_id }) }}">
+					D3.7 Unit coordinator<br>
+					D3.8 Schools responsible for teaching the Unit
+				</a>
+			</li>
+		</ul>
+	</li>
+	<li class="dropdown">
+		<a class="dropdown-toggle" data-toggle="dropdown" href="#">Section 4: Checklist and Approvals
+		<span class="caret"></span></a>
+		<ul class="dropdown-menu">
+			<li>
+				<a href="{{ urlFor('/variation/edit/section4-1', {'variation_id': variation_id }) }}">
+					D4.1 Checklist
+				</a>
+			</li>
+			{% if user_type == 'admin' or user_type == 'developer' %}
+			<hr class='tab-hr'>
+			<li>
+				<a href="{{ urlFor('/variation/edit/section4-2', {'variation_id': variation_id }) }}">
+					D4.2 Record of approvals
+				</a>
+			</li>
+			{% endif %}
+		</ul>
+	</li>
+</ul>

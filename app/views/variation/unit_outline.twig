@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+
+        @page {
+            size: A4 portrait;
+        }
+
+        @page :left {
+            margin-left: 2cm;
+        }
+
+        @page :right {
+            margin-left: 2cm;
+            @bottom-right {
+                content: counter(page);
+            };
+            @bottom-left {
+                content: "";
+            };
+        }
+
+        body {
+            font-family: Calibri;
+        }
+
+        .content_table {
+            width: 650px;
+            text-align: left;
+            vertical-align: text-top;
+            font-size: 11px;
+        }
+
+        .content_table > tbody > tr > td {
+            vertical-align: text-top;
+            padding-bottom: 10px;
+        }
+
+        .content_table > tbody > tr > td:first-child {
+            width: 120px;
+            font-weight: bold;
+        }
+
+        .bordered_table {
+            border-collapse: collapse;
+            border: 1px solid black;
+            margin-bottom: 15px;
+        }
+
+        .bordered_table tr td, .bordered_table tr th {
+            border: 1px solid black;
+            padding: 5px;
+        }
+
+        .bordered_table {
+            font-weight: normal;
+        }
+    </style>
+</head>
+<body>
+    <h1>Unit Outline</h1>
+    <table class="content_table">
+        <tbody>
+            <tr>
+                <td>School</td>
+                <td>{{ variation.school }}</td>
+            </tr>
+            <tr>
+                <td>Unit Number and Name</td>
+                <td>{{ variation.unit_code }} - {{ variation.unit_name}}</td>
+            </tr>
+            <tr>
+                <td>Unit Coordinator</td>
+                <td>{{ variation.admin_contact }}</td>
+            </tr>
+            <tr>
+                <td>Teaching Session and Year</td>
+                <td>{{ session }} {{ year }}</td>
+            </tr>
+            <tr>
+                <td>Handbook Summary</td>
+                <td>{{ variation.handbook_summary }}</td>
+            </tr>
+            <tr>
+                <td>Credit Points</td>
+                <td>{{ variation.credit_points }}</td>
+            </tr>
+            <tr>
+                <td>Pre-Requisites</td>
+                <td>
+                    {% for prereq in prerequisite %}
+                        {{ prereq.unit_code }}: {{ prereq.unit_name }}<br>
+                    {% endfor %}
+                </td>
+            </tr>
+            <tr>
+                <td>Co-Requisites</td>
+                <td>
+                    {% for coreq in corequisite %}
+                        {{ coreq.unit_code }}: {{ coreq.unit_name }}<br>
+                    {% endfor %}
+                </td>
+            </tr>
+            <tr>
+                <td>Unit incompatible with and not to be counted for credit with</td>
+                <td>
+                    {% for incom in incompatible %}
+                        {{ incom.unit_code }}: {{ incom.unit_name }}<br>
+                    {% endfor %}
+                </td>
+            </tr>
+            <tr>
+                <td>Unit Level</td>
+                <td>{{ variation.unit_level }}</td>
+            </tr>
+            <tr>
+                <td>Assumed Knowledge</td>
+                <td>{{ variation.assumed_knowledge|nl2br }}</td>
+            </tr>
+            <tr>
+                <td>Attendance Requirements</td>
+                <td>{{ variation.attendance_requirements|nl2br }}</td>
+            </tr>
+            <tr>
+                <td>Enrolment Restrictions</td>
+                <td>{{ variation.enrolment_restrictions|nl2br }}</td>
+            </tr>
+            <tr>
+                <td>Learning Outcomes</td>
+                <td>
+                    On successful completion of this unit, students should be able to:<br>
+                    {% for outcome in outcomes %}
+                        {{ outcome.number }}. {{ outcome.outcome }}<br>
+                    {% endfor %}
+                </td>
+            </tr>
+            <tr>
+                <td>Unit Content</td>
+                <td>{{ variation.unit_content|nl2br }}</td>
+            </tr>
+            <tr>
+                <td>Modes of Delivery</td>
+                <td>
+                    <table class="bordered_table">
+                        <tr><th>Mode</th><th>Hours</th></tr>
+                        {% for mode in modes %}
+                            <tr>
+                                <td>{{ mode.mode }}</td>
+                                <td>{{ mode.hours }}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                    Refer to the Learning Guide for further details on Mode of Delivery.    Students can only attend the classes for which they are registered and places are allocated via the Tutorial Registration (Allocate+) system. Visit http://www.uws.edu.au/currentstudents/current_students/managing_your_study/enrolment/tutorial_registration for information on the timetable and tutorial registration.
+                </td>
+            </tr>
+            <tr>
+                <td>Assessment items and weighting</td>
+                <td>
+                    <table class="bordered_table">
+                        <tr><th>Item</th><th>Length</th><th>Weight</th></tr>
+                        {% for ass in assessments[0].assessments %}
+                            <tr><td>{{ ass.name }}</td><td>{{ ass.length }}</td><td>{{ ass.weight }}%</td></tr>
+                        {% endfor %}
+                    </table>
+                    Refer to the Learning Guide for any applicable threshold requirements
+                </td>
+            </tr>
+            <tr>
+                <td>Prescribed Unit Textbook</td>
+                <td>
+                    {% for textbook in readings %}
+                        {% if textbook.resource_type == "Prescribed Textbook" %}
+                            {{ textbook.reference }}<br>
+                        {% endif %}
+                    {% endfor %}
+                </td>
+            </tr>
+            <tr>
+                <td>Essential Readings</td>
+                <td>
+                    {% for essential in readings %}
+                        {% if essential.resource_type == "Essential Reading" %}
+                            {{ essential.reference }}<br>
+                        {% endif %}
+                    {% endfor %}
+                </td>
+            </tr>
+            <tr>
+                <td>Online Learning Requirements</td>
+                <td>
+                    {{ variation.online_learning_requirements|nl2br }}
+                    <p>
+                        Students are expected to consult vUWS at least twice a week, as all announcements will be made via vUWS and teaching material will be regularly updated and posted online.
+                    </p>
+                </td>
+            </tr>
+            <tr>
+                <td>Special Requirements - Legislative pre-requisites</td>
+                <td>{{ variation.legislative_prerequisites|nl2br }}</td>
+            </tr>
+            <tr>
+                <td>Special Requirements - Essential equipment</td>
+                <td>{{ variation.essential_equipment|nl2br }}</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>

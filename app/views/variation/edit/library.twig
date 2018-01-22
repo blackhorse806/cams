@@ -1,0 +1,353 @@
+{% extends "layouts/master.twig" %}
+
+{% block js %}
+<script>
+	var g_data = null;
+	var g_lock = false;
+	var g_has_changed = false;
+
+	window.onbeforeunload = function(event) {
+		if (g_has_changed)
+	    	return "You have unsaved changes. Are you sure you want to navigate away?";
+	};
+
+	$(document).ready(function(){
+		pull_data();
+	});
+
+	function pull_data() {
+		$.ajax({
+			url: '{{ urlFor('/variation/get/library', { "variation_id" : variation_id }) }}',
+			method: "GET",
+			dataType: "text",
+			success: function(result) {
+				if (result != null && result != "0 results") {
+					g_data = JSON.parse(result);
+					populate_form(format_data_for_form(g_data));
+					console.log(g_data);
+				}
+			}
+		});
+	}
+
+	function format_data_for_form(data) {
+		var result = {
+			"id": data.id,
+			"d14": {
+		        "variation_changes": data.variation_changes,
+		        "variation_rationale": data.variation_rationale,
+		        "variation_impact": data.variation_impact
+		    },
+		    "d15": {
+		        "implementation_session": data.implementation_session,
+		        "implementation_year": data.implementation_year
+		    },
+		    "d34": data.readings,
+		};
+		return result;
+	}
+
+	function populate_form(data) {
+		$("#form1").html("");
+		$("#form1").alpaca({
+			"data": data,
+			"schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"title": "ID"
+					},
+					"d14": {
+						"title": "D1.4 Variation",
+						"type": "object",
+						"properties": {
+							"variation_changes": {
+								"type": "string",
+								"title": "a. Please describe all of the changes to the Unit"
+							},
+							"variation_rationale": {
+								"type": "string",
+								"title": "b. Rationale for a variation to a Unit"
+							},
+							"variation_impact": {
+								"type": "string",
+								"title": "c. Impact of not making the change(s)"
+							}
+						}
+					},
+					"d15": {
+						"title": "D1.5 Session for implementation",
+						"type": "object",
+						"properties": {
+							"implementation_session": {
+								"type": "string",
+								"title": "Session",
+								"enum": {{ sessions|json_encode|raw }}
+
+							},
+							"implementation_year": {
+								"type": "string",
+								"title": "Year",
+								"enum": {{ years|json_encode|raw }}
+							}
+						}
+					},
+					"d34": {
+						"title": "D3.4 Prescribed Unit text & D3.5 Library resources",
+						"type": "array",
+						"items": {
+							"type": "object",
+							"properties": {
+								"id": {
+									"type": "string",
+									"title": "ID"
+								},
+								"resource_type": {
+									"type": "string",
+									"title": "Resource Type",
+									"enum": {{ reading_types|json_encode|raw }}
+								},
+								"reference": {
+									"type": "string",
+									"title": "Reference"
+								}
+							}
+						}
+					},
+				}
+			},
+			"toolbarSticky": true,
+			"options": {
+				"events": {
+                    "change": function() {
+						g_has_changed = true;
+                        console.log("Change");
+                    }
+				},
+				"fields": {
+					"id": {
+						"type": "hidden"
+					},
+					"d14": {
+						"helpers": [
+							"The information provided here should assist the relevant committees in their decision to support the changes. Provide the reasons for the changes you are making and include any pertinent information regarding the impact of not making the changes you are requesting."
+						],
+						"fields": {
+							"variation_changes": {
+								"type": "textarea",
+								"helpers": [
+									"All changes must be listed here, so that they can be included in the approval process",
+									"Note: Please note that any changes made but not listed here will not be considered approved and will therefore not be implemented."
+								]
+							},
+							"variation_rationale": {
+								"type": "textarea",
+								"helpers": [
+									"Please provide the reasons for the change(s)."
+								]
+							},
+							"variation_impact": {
+								"type": "textarea",
+								"helpers": [
+									"Please explain the impact of NOT making the change(s)"
+								]
+							},
+						},
+                        "dependencies": {
+                            "proposal_type": "Variation"
+                        }
+					},
+					"d15": {
+						"helpers": [
+							"Please indicate when the proposed Unit will first be offered, or when the variation will take effect."
+						]
+					},
+					"d34": {
+						"helpers": [
+							"The Library provides a range of resources and services to assist the University staff in developing their reading lists. Please contact your <a href='http://library.westernsydney.edu.au/main/help/contact-us/school-librarians' target='_blank'>School Liaison Librarian</a> for ongoing support.  For the College at Nirimba, please contact the ‘Campus Librarian, Nirimba’.  The library also provides face-to-face and online support for staff at <a href='http://library.westernsydney.edu.au/main/guides/resources-for-teaching' target='_blank'>http://library.westernsydney.edu.au/main/guides/resources-for-teaching</a>",
+							"Prescribed Unit text<br><ul class='help-block'><li>The prescribed Unit textbook is a textbook that all enrolled students are expected to purchase.</li><li>Note: For the prescribed Unit textbook that students are expected to purchase (unless available as an e-book), the library will only hold one copy per campus where the Unit is taught. Contact the University Books Text Buyer to ensure that appropriate stock can be made available for students to purchase at the relevant Campus Bookshops.</li></ul>",
+							"Essential readings<br><ul class='help-block'><li>Specify the essential texts or other learning resources for the Unit. For texts, you must provide the full author, title and publication details. </li><li>Essential readings are books, articles and electronic resources that the student must consult in order to fulfil the learning objectives of the Unit, and which will be made available by the Library. If the Library is unable to access a text they will contact you for an alternative.</li><li>What are the essential texts or other essential learning resources for the Unit, which the Library will hold?</li></ul>",
+							"Additional readings<br><ul class='help-block'><li>Identify the key additional information sources which will need to be held by the University for effective conduct of this Unit, and specify required campus location if the information source is not available electronically. Where a source is not recent, provide a reason for inclusion.</li><li>Note: Essential and additional readings make up reading lists. The reading lists will be included in the Unit Outline and where View Designer access is granted to Library staff, loaded to the Unit’s vUWS. The Library makes every effort to acquire all items that appear on reading lists. If not they will contact you for an alternative.</li><li>Please list the information resources which will be included in the additional readings list for the Unit. Specify the required campus location if the information source is not available electronically. Where a resource is not recent, provide a reason for inclusion in the reading list. The library will advise if an alternative reading is required (e.g. if a resource is no longer available).</li></ul>",
+						],
+						"type": "table",
+						"items": {
+							"fields": {
+								"id": {
+									"type": "hidden"
+								},
+								"reference": {
+									"type": "textarea",
+									"rows": 2,
+									"size": 75
+								},
+								"resource_type": {
+		                    		"type": "select",
+									"size": 1
+		                		}
+							}
+						},
+						"actionbar": {
+							 "actions": [{
+								 "action": "add",
+								 "click": function() {
+									var value = this.getValue();
+									value.push({
+									});
+									this.setValue(value);
+								}
+							 }, {
+								 "action": "remove"
+							 }, {
+								 "action": "up",
+								 "enabled": false
+							 }, {
+								 "action": "down",
+								 "enabled": false
+							 }]
+						}
+					},
+				},
+				"form": {
+				   "buttons": {
+					   "submit": {
+						   "title": "Save",
+						   "click": save
+					   }
+				   }
+			   }
+		   },
+			"postRender": function(control) {
+				$('[data-key="submit"]').addClass("btn-primary");
+				$('[data-alpaca-container-item-name="d34"]').addClass("alpaca-field-object");
+				$('[data-alpaca-container-item-name="c"]').addClass("alpaca-field-object");
+				// for (var i = 0; i < 100; i++) {
+					// $('[name="_' + i + '_number"]').width(17);
+					// $('[data-alpaca-container-item-name="_' + i + '_weight"]').width(50);
+					// $('[data-alpaca-container-item-name="_' + i + '_ulos"]').width(100);
+					// $('[data-alpaca-container-item-name="_' + i + '_threshold"]').width(80);
+					// $('[data-alpaca-container-item-name="_' + i + '_type"]').width(105);
+				// }
+				$('[data-header-id="resource_type"]').width(170);
+				$(".actionbar").width(80);
+			}
+		});
+	}
+
+	function find_deleted(loaded, modified) {
+		var deleted = [];
+		if (loaded != null) {
+			for (var i = 0; i < loaded.length; i++) {
+				var find_id = loaded[i].id
+				var found = false;
+				for (var j = 0; j < modified.length; j++) {
+					if (modified[j].id == find_id) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					deleted.push(find_id);
+				}
+			}
+		}
+		return deleted;
+	}
+
+	function save() {
+		if (g_lock){
+			return;
+		}
+		g_lock = true;
+		$(".alpaca-form-button-submit").addClass("disabled");
+		$(".alpaca-form-button-submit").html("Saving...");
+
+		var data = $("#form1").alpaca().getValue();
+		console.log(JSON.stringify(data));
+
+		var deleted = find_deleted(g_data.readings, data.d34);
+
+		g_data.id = data.id;
+		g_data.variation_changes = data.d14.variation_changes;
+		g_data.variation_rationale = data.d14.variation_rationale;
+		g_data.variation_impact = data.d14.variation_impact;
+		g_data.implementation_session = data.d15.implementation_session,
+		g_data.implementation_year = data.d15.implementation_year
+		g_data.readings = data.d34;
+
+		// Replace undefined values with empty string
+		for (var variable in g_data) {
+			if (g_data.hasOwnProperty(variable)) {
+				if (typeof g_data[variable] === 'undefined') {
+					g_data[variable] = "";
+				}
+			}
+		}
+
+		console.log(g_data);
+
+		console.log(deleted);
+
+		$.ajax({
+			url: '{{ urlFor('/variation/put/library', { "variation_id" : variation_id }) }}',
+			dataType: 'text',
+			data: {data : JSON.stringify(g_data), delete : JSON.stringify(deleted)},
+			type: 'POST',
+			success: function(data){
+				console.log(data);
+				if (data=="success") {
+					//$('html, body').animate({scrollTop: $("body").offset().top},200);
+					$('#submitted').hide();
+					$('#submitted').fadeIn(1000);
+					setTimeout(function() {
+						$('#submitted').fadeOut(2000);
+					}, 2000);
+					pull_data();
+					g_has_changed = false;
+				} else {
+					alert("Error: Could not save.\nMessage: " + data);
+				}
+				$(".alpaca-form-button-submit").removeClass("disabled");
+				$(".alpaca-form-button-submit").html("Save");
+				g_lock = false;
+			}
+		});
+	}
+</script>
+{% endblock %}
+
+{% block css %}
+<style media="screen">
+	#submitted {
+		position: fixed;
+		top: 75px;
+		right: 50px;
+		width: 200px;
+	}
+
+	.class_table, .class_table td, .class_table th {
+		border: 1px solid black
+	}
+
+	.class_table th:first-child {
+		width: 120px;
+	}
+
+	.class_table td, .class_table th {
+		padding: 5px;
+	}
+
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Library Variation</h1>
+<div style="text-align: left;">
+<br>
+<div id='submitted' hidden><div class="alert alert-success" role="alert">Data Saved <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></div></div>
+
+<div id="form1"></div>
+
+{% endblock %}

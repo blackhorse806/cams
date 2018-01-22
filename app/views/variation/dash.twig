@@ -1,0 +1,241 @@
+{% extends "layouts/master.twig" %}
+
+{% block css %}
+    <style>
+        .button_seperator {
+            margin-bottom: 15px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .menu_button {
+            width: 250px;
+        }
+
+        h3 {
+            text-align: center;
+        }
+
+        #details td{
+            padding: 3px;
+            font-family: Calibri;
+            font-size: 16px;
+        }
+
+        #details td:first-child {
+            padding-right: 10px;
+        }
+
+    </style>
+{% endblock %}
+
+{% block js %}
+    <script>
+        function generate_d16() {
+            $("#generate_d16").attr("onclick", "");
+            $("#generate_d16").addClass("disabled");
+
+            $.ajax({
+                url: '{{ urlFor('/variation/generate', { "variation_id" : variation_id }) }}',
+                method: "GET",
+                dataType: "text",
+                success: function(result) {
+                    if (result != null && result != "0 results") {
+                        console.log(result);
+                        window.location = "{{ urlFor('/variation/download', { "variation_id" : variation_id }) }}";
+                    } else {
+                        alert("Failed to generate form: " + result);
+                    }
+                    $("#generate_d16").attr("onclick", "generate_d16()");
+                    $("#generate_d16").removeClass("disabled");
+                }
+            });
+        }
+
+        {% if user.type == 'developer' %}
+		function delete_variation() {
+			if (confirm("Are you sure you want to delete this?")) {
+				$("#btn_delete").addClass("disabled");
+				$("#btn_delete").attr("onclick", "");
+				window.location = "{{ urlFor('/variation/delete', {'variation_id':variation_id}) }}";
+			}
+		}
+        {% endif %}
+
+		function create_variation(variation_type) {
+			if (confirm("Are you sure you want to create a new " + variation_type + " variation?")) {
+				$(".btn").addClass("disabled");
+				$(".btn").attr("onclick", "");
+				$(".btn").attr("data-target", "");
+				window.location = ("{{ urlFor('/variation/duplicate', {'variation_id':variation_id}) }}").replace(":variation_type", variation_type);
+			}
+		}
+
+		function start_approval() {
+			if (confirm("Are you sure you want to start the approval process?")) {
+				$("#btn_approval").addClass("disabled");
+				$("#btn_approval").attr("onclick", "");
+				setTimeout(function(){
+					window.location = "{{ urlFor('/variation/review', {'variation_id':variation_id}) }}";
+				}, 1000);
+			}
+		}
+
+		function approve_variation() {
+			if (confirm("Are you sure you want to approve this variation?")) {
+				$("#btn_approve").addClass("disabled");
+				$("#btn_approve").attr("onclick", "");
+				window.location = "{{ urlFor('/variation/approve', {'variation_id':variation_id}) }}";
+			}
+		}
+
+    </script>
+{% endblock %}
+
+{% block content %}
+
+<h1>Variation Dashboard</h1>
+
+<div class="panel panel-default">
+    <div class="panel-body" style="text-align: left;">
+        <table id="details">
+            <tr><td>Variation ID</td><td> {{ variation.unit_id }} </td></tr>
+            <tr><td>Unit Code</td><td> {{ variation.unit_code }} </td></tr>
+            <tr><td>Unit Name</td><td> {{ variation.unit_name }} </td></tr>
+            <tr><td>Unit Coordinator</td><td> {{ variation.admin_contact }} </td></tr>
+            <tr><td>School</td><td> {{ variation.school }} </td></tr>
+            <tr><td>State</td><td> {{ variation.state }} </td></tr>
+            <tr><td>Current</td><td> {{ variation.current|replace({'0':'No','1':'Yes'}) }} </td></tr>
+            <tr><td>Approved</td><td> {{ variation.approved|replace({'0':'No','1':'Yes'}) }} </td></tr>
+            <tr><td>Started</td><td> {{ variation.date_started }} </td></tr>
+            <tr><td>Finished</td><td> {{ variation.date_finished }} </td></tr>
+			<tr><td>Type</td><td> {{ variation.proposal_type }} </td></tr>
+			<tr>
+				<td>Editors</td>
+				<td>
+					{% for editor in editors %}
+						{% if editor == editors[0] %}{{ editor.name }}{% else %}, {{ editor.name }}{% endif %}
+					{% endfor %}
+					{% if user.type == 'admin' or user.type == 'developer' or user.type == 'uc' %}
+						{% if variation.state != "Complete" %}
+							<a href="{{ urlFor('/variation/edit/editors', {'variation_id':variation_id}) }}" ><span class=" glyphicon glyphicon-pencil" aria-hidden="true"></span></a>
+						{% endif %}
+					{% endif %}
+				</td>
+			</tr>
+        </table>
+    </div>
+</div>
+
+<div class="panel panel-default">
+	<div class="panel-body" style="text-align: left;">
+        <div class="row">
+            <div class="col-md-4">
+				{% if user.type == 'observer' %}
+					<div class="button_seperator"><a href="{{ urlFor('/variation/view', {'variation_id':variation_id}) }}" class="btn btn-primary btn-lg menu_button">View&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-file" aria-hidden="true"></span></a></div>
+				{% endif %}
+                {% if user.type == 'admin' or user.type == 'developer' or user.type == 'uc' %}
+                    <h3>Unit Coordinator</h3>
+                    {% if variation.state == "Editing" %}
+    					{% if variation.proposal_type == "Variation" or variation.proposal_type == "New Unit" %}
+                        	<div class="button_seperator"><a href="{{ urlFor('/variation/edit/section1', {'variation_id':variation_id}) }}" class="btn btn-primary btn-lg menu_button">Edit&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-pencil" aria-hidden="true"></span></a></div>
+    					{% elseif variation.proposal_type == "Library" %}
+    						<div class="button_seperator"><a href="{{ urlFor('/variation/edit/library', {'variation_id':variation_id}) }}" class="btn btn-primary btn-lg menu_button">Edit&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-pencil" aria-hidden="true"></span></a></div>
+    					{% elseif variation.proposal_type == "Timetable" %}
+    						<div class="button_seperator"><a href="{{ urlFor('/variation/edit/timetable', {'variation_id':variation_id}) }}" class="btn btn-primary btn-lg menu_button">Edit&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-pencil" aria-hidden="true"></span></a></div>
+    					{% endif %}
+    					<div class="button_seperator"><div id="btn_approval" onclick="start_approval()" class="btn btn-primary btn-lg menu_button">Start Approval Process&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-ok" aria-hidden="true"></span></div></div>
+                    {% endif %}
+    				<div class="button_seperator"><a href="{{ urlFor('/variation/view', {'variation_id':variation_id}) }}" class="btn btn-primary btn-lg menu_button">View&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-file" aria-hidden="true"></span></a></div>
+                    {% if variation.current == "1" %}
+                        <div class="button_seperator"><div id="btn_create" onclick="create_variation('unit')" class="btn btn-primary btn-lg menu_button">Unit Variation&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-duplicate" aria-hidden="true"></span></div></div>
+                        <div class="button_seperator"><div id="btn_timetable" onclick="create_variation('timetable')" class="btn btn-primary btn-lg menu_button">Timetable Variation&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-calendar" aria-hidden="true"></span></div></div>
+                        <div class="button_seperator"><div id="btn_library" onclick="create_variation('library')" class="btn btn-primary btn-lg menu_button">Library Variation&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-book" aria-hidden="true"></span></div></div>
+                    {% endif %}
+                {% endif %}
+            </div>
+            <div class="col-md-4">
+                {% if user.type == 'admin' or user.type == 'developer' %}
+                    <h3>Administrator</h3>
+                    {% if variation.state == "Editing" or variation.state == "Review" %}
+    					{% if variation.proposal_type == "Variation" or variation.proposal_type == "New Unit" %}
+    						<div class="button_seperator"><a href="{{ urlFor('/variation/edit/section1', {'variation_id':variation_id}) }}" class="btn btn-primary btn-lg menu_button">Edit&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-pencil" aria-hidden="true"></span></a></div>
+    					{% elseif variation.proposal_type == "Library" %}
+    						<div class="button_seperator"><a href="{{ urlFor('/variation/edit/library', {'variation_id':variation_id}) }}" class="btn btn-primary btn-lg menu_button">Edit&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-pencil" aria-hidden="true"></span></a></div>
+    					{% elseif variation.proposal_type == "Timetable" %}
+    						<div class="button_seperator"><a href="{{ urlFor('/variation/edit/timetable', {'variation_id':variation_id}) }}" class="btn btn-primary btn-lg menu_button">Edit&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-pencil" aria-hidden="true"></span></a></div>
+    					{% endif %}
+    					<div class="button_seperator"><button id="generate_d16" class="btn btn-primary btn-lg menu_button" type="button" onclick="generate_d16()">Generate D16&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-open-file" aria-hidden="true"></span></button></div>
+    					<div class="button_seperator"><a href="{{ urlFor('/variation/view', {'variation_id':variation_id}) }}" class="btn btn-primary btn-lg menu_button">View&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-file" aria-hidden="true"></span></a></div>
+                    {% endif %}
+                    {% if variation.state == "Review" %}
+    					<div class="button_seperator"><div id="btn_approve" onclick="approve_variation()" class="btn btn-primary btn-lg menu_button">Approve&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-floppy-save" aria-hidden="true"></span></div></div>
+                        <div class="button_seperator"><a href="{{ urlFor('/variation/revert', {'variation_id':variation_id}) }}" class="btn btn-primary btn-lg menu_button">Revert to Editing&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-share-alt" aria-hidden="true"></span></a></div>
+                    {% endif %}
+    				{% if variation.state == "Complete" %}
+                    	<div class="button_seperator"><button type="button" class="btn btn-primary btn-lg menu_button" data-toggle="modal" data-target="#myModal">View Unit Outline&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-open-file" aria-hidden="true"></span></button></div>
+    				{% endif %}
+                {% endif %}
+            </div>
+            <div class="col-md-4">
+                {% if user.type == 'developer' %}
+                    <h3>Developer</h3>
+                    <div class="button_seperator"><a href="{{ urlFor('/variation/edit/section1', {'variation_id':variation_id}) }}" class="btn btn-primary btn-lg menu_button">Edit&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-pencil" aria-hidden="true"></span></a></div>
+                    <div class="button_seperator"><div id="btn_delete" onclick="delete_variation()" class="btn btn-primary btn-lg menu_button">Delete&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-floppy-remove" aria-hidden="true"></span></div></div>
+    				<div class="button_seperator"><a href="{{ urlFor('/variation/view', {'variation_id':variation_id}) }}" class="btn btn-primary btn-lg menu_button">View&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-file" aria-hidden="true"></span></a></div>
+					<div class="button_seperator"><button id="generate_d16" class="btn btn-primary btn-lg menu_button" type="button" onclick="generate_d16()">Generate D16&nbsp;&nbsp;<span class="pull-left glyphicon glyphicon-open-file" aria-hidden="true"></span></button></div>
+                {% endif %}
+            </div>
+        </div>
+
+	</div>
+</div>
+
+<!-- <div class="panel panel-default">
+    <div class="panel-body" style="text-align: left;">
+		<h3>UC Comments</h3>
+		<p></p>
+		<h3>Admin Comments</h3>
+		<p></p>
+	</div>
+</div> -->
+
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Unit Outline</h4>
+                </div>
+                <div class="modal-body">
+                    <form class="form">
+                        <label class="pull-left">Select Year</label>
+                        <select class="form-control" id="year">
+                            {% for year in years %}
+                                <option>{{ year }}</option>
+                            {% endfor %}
+                        </select>
+                        <label class="pull-left">Select Session</label>
+                        <select class="form-control" id="session">
+                            {% for session in sessions %}
+                                <option>{{ session }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="open_unit_outline()">View Unit Outline</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function open_unit_outline() {
+            session = $("#session").val();
+            year = $("#year").val();
+            window.location = "/variation/{{ variation_id }}/uo/" + session + "/" + year;
+        }
+    </script>
+{% endblock %}

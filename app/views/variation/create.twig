@@ -1,0 +1,133 @@
+
+
+{% extends "layouts/master.twig" %}
+
+{% block js %}
+<script>
+	var g_lock = false;
+	$(document).ready(function(){
+		populate_form();
+	});
+
+	function populate_form() {
+		$("#form1").html("");
+		$("#form1").alpaca({
+			"schema": {
+                "title": "Please complete initial Unit details",
+                "type": "object",
+                "properties": {
+                    "unit_code": {
+                        "type": "string",
+                        "title": "Unit Code",
+                        "default": ""
+                    },
+                    "unit_name": {
+                        "type": "string",
+                        "title": "Unit Name",
+                        "default": ""
+                    },
+                    "school": {
+                        "type": "string",
+                        "title": "Please list the School responsible for the Unit.",
+                        "enum": {{ schools|json_encode|raw }}
+                    }
+                }
+			},
+			"options": {
+				"events": {
+                    "change": function() {
+						g_has_changed = true;
+                        console.log("Change");
+                    }
+				},
+				"fields": {
+					"unit_id": {
+						"hidden": true
+					},
+				},
+				"form": {
+				   "buttons": {
+					   "submit": {
+						   "title": "Create Unit",
+						   "click": save
+					   }
+				   }
+			   }
+		   },
+		   "postRender": function(control) {
+			   $('[data-key="submit"]').addClass("btn-primary");
+		   }
+		});
+	}
+
+	function save() {
+		if (g_lock){
+			return;
+		}
+		g_lock = true;
+		$(".alpaca-form-button-submit").addClass("disabled");
+		$(".alpaca-form-button-submit").html("Saving...");
+
+		var data = $("#form1").alpaca().getValue();
+
+		if (!data.hasOwnProperty('unit_code')) {
+			data.unit_code = "";
+		}
+		if (!data.hasOwnProperty('unit_name')) {
+			data.unit_code = "";
+		}
+		if (!data.hasOwnProperty('school')) {
+			data.unit_code = "";
+		}
+
+		g_data = {};
+		g_data.unit_code = data.unit_code;
+		g_data.unit_name = data.unit_name;
+		g_data.school = data.school;
+
+		$.ajax({
+			url: '{{ urlFor('/variation/create_variation', { "variation_id" : variation_id }) }}',
+			dataType: 'text',
+			data: {data : JSON.stringify(g_data)},
+			type: 'POST',
+			success: function(data){
+				if (data === "success") {
+					$('#submitted').hide();
+					$('#submitted').fadeIn(1000);
+					setTimeout(function() {
+						$('#submitted').fadeOut(2000);
+					}, 2000);
+					window.location = '{{ urlFor('/variation/uc_list') }}';
+				} else {
+					alert("Error: Could not save.\nMessage: " + data);
+				}
+				$(".alpaca-form-button-submit").removeClass("disabled");
+				$(".alpaca-form-button-submit").html("Create");
+				g_lock = false;
+			}
+		});
+	}
+</script>
+{% endblock %}
+
+{% block css %}
+<style media="screen">
+	#submitted {
+		position: fixed;
+		top: 75px;
+		right: 50px;
+		width: 200px;
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Create Unit</h1>
+<div style="text-align: left;">
+<br>
+<div id='submitted' hidden><div class="alert alert-success" role="alert">Data Saved <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></div></div>
+
+<div id="form1"></div>
+</div>
+{% endblock %}

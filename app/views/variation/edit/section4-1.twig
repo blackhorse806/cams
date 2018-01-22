@@ -1,0 +1,345 @@
+{% extends "layouts/master.twig" %}
+
+{% block js %}
+<script>
+	var g_data = null;
+	var g_lock = false;
+	var g_has_changed = false;
+
+	window.onbeforeunload = function(event) {
+		if (g_has_changed)
+	    	return "You have unsaved changes. Are you sure you want to navigate away?";
+	};
+
+	$(document).ready(function(){
+		pull_data();
+	});
+
+	function pull_data() {
+		$.ajax({
+			url: '{{ urlFor('/variation/get/section4-1', { "variation_id" : variation_id }) }}',
+			method: "GET",
+			dataType: "text",
+			success: function(result) {
+				if (result != null && result != "0 results") {
+					g_data = JSON.parse(result);
+					populate_form(format_data_for_form(g_data));
+					console.log(g_data);
+				}
+			}
+		});
+	}
+
+	function format_data_for_form(data) {
+		var result = {
+			"id": data.id,
+		    "contact": {
+				"checklist_school": data.checklist_school,
+				"checklist_contact": data.checklist_contact,
+				"checklist_extension": data.checklist_extension,
+				"checklist_email": data.checklist_email,
+			},
+			"checklist_all": {
+				"checklist1": data.checklist1,
+				"checklist2": data.checklist2,
+				"checklist3": data.checklist3,
+				"checklist4": data.checklist4,
+				"checklist5": data.checklist5,
+				"checklist6": data.checklist6,
+				"checklist7": data.checklist7,
+			},
+			"checklist_new": {
+				"checklist8": data.checklist8,
+			}
+		};
+		return result;
+	}
+
+	function populate_form(data) {
+		$("#form1").html("");
+		$("#form1").alpaca({
+			"data": data,
+			"schema": {
+				"title": "D4.1 Checklist",
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"title": "ID"
+					},
+					"contact": {
+						"title": "</legend><label class='control-label alpaca-control-label'>Details of person responsible for confirming this form has been completed in accordance with the University’s Courses and Units Approvals Policy and related policies.</label><legend style=' border-bottom : 0; height: 0px; padding: 0; margin: 0'>",
+						"type": "object",
+						"properties": {
+							"checklist_contact": {
+								"title": "Contact Person",
+								"type": "string"
+							},
+							"checklist_school": {
+								"title": "School/Division",
+								"type": "string"
+							},
+							"checklist_extension": {
+								"title": "Extension",
+								"type": "string"
+							},
+							"checklist_email": {
+								"title": "Email Address",
+								"type": "string",
+								"format": "email"
+							},
+						}
+					},
+					"checklist_all": {
+						"title": "For All Proposals",
+						"type": "object",
+						"properties": {
+							"checklist1": {
+								"type": "string",
+								"title": "1.	I have notified all affected Directors of Academic Programs regarding any impact on Courses resulting from this proposal.",
+								"enum": ["0", "1"]
+							},
+							"checklist2": {
+								"type": "string",
+								"title": "2.	I have ensured that all information provided in Question 3.1 is consistent with transition details provided in any Unit Proposal and Variation Form (Form D16) or Course Transition Details for a Course or Specialisation Form (Form E16).",
+								"enum": ["0", "1"]
+							},
+							"checklist3": {
+								"type": "string",
+								"title": "3.	I have provided a contact for each School that is responsible for teaching the Unit.",
+								"enum": ["0", "1"]
+							},
+							"checklist4": {
+								"type": "string",
+								"title": "4.	I have included Units listed as replaced Units at Question 3.1a, under Question 2.9 if they are deemed to be equivalent for progression or under Question 2.10 if they are deemed incompatible.",
+								"enum": ["0", "1"]
+							},
+							"checklist5": {
+								"type": "string",
+								"title": "5.	Where applicable, I have provided a rationale for:<ul><li>3 hour exam Question 2.5b</li><li>Assessment threshold Question 2.5c</li><li>Non-mandatory assessment items Question 2.5d</li><li>Mandatory attendance requirements Question 2.5e</li></ul>",
+								"enum": ["0", "1"]
+							},
+							"checklist6": {
+								"type": "string",
+								"title": "6.	I have ensured that the Dean of School has provided sign off on all resources required to support the Unit Questions 3.2, 3.4 and 3.7.",
+								"enum": ["0", "1"]
+							},
+							"checklist7": {
+								"type": "string",
+								"title": "7.	I have undertaken a WHS risk assessment for this unit, and where required, I have consulted with the WHS unit regarding the proposed risk mitigation strategies",
+								"enum": ["0", "1"]
+							}
+						}
+					},
+					"checklist_new": {
+						"title": "For New Units Only",
+						"type": "object",
+						"properties": {
+							"checklist8": {
+								"type": "string",
+								"title": "8.	I have completed Form B16 - Full Course Proposal and Variation for all Courses affected by the introduction of this New Unit.",
+								"enum": ["0", "1"]
+							}
+						}
+					}
+				}
+			},
+			"toolbarSticky": true,
+			"options": {
+				"events": {
+                    "change": function() {
+						g_has_changed = true;
+                        console.log("Change");
+                    }
+				},
+				"fields": {
+					"id": {
+						"type": "hidden"
+					},
+					"checklist_all": {
+						"fields": {
+							"checklist1": {
+								"type": "select",
+	                    		"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+							},
+							"checklist2": {
+	                    		"type": "select",
+	                    		"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+	                		},
+							"checklist3": {
+	                    		"type": "select",
+	                    		"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+	                		},
+							"checklist4": {
+	                    		"type": "select",
+	                    		"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+	                		},
+							"checklist5": {
+	                    		"type": "select",
+	                    		"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+	                		},
+							"checklist6": {
+	                    		"type": "select",
+	                    		"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+	                		},
+							"checklist7": {
+	                    		"type": "select",
+	                    		"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+	                		}
+						}
+					},
+					"checklist_new": {
+						"fields": {
+							"checklist8": {
+								"type": "select",
+	                    		"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+							}
+						}
+					}
+				},
+				"form": {
+				   "buttons": {
+					   "submit": {
+						   "title": "Save",
+						   "click": save
+					   }
+				   }
+			   }
+		   },
+			"postRender": function(control) {
+				$('[data-key="submit"]').addClass("btn-primary");
+			}
+		});
+	}
+
+	function find_deleted(loaded, modified) {
+		var deleted = [];
+		if (loaded != null) {
+			for (var i = 0; i < loaded.length; i++) {
+				var find_id = loaded[i].id
+				var found = false;
+				for (var j = 0; j < modified.length; j++) {
+					if (modified[j].id == find_id) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					deleted.push(find_id);
+				}
+			}
+		}
+		return deleted;
+	}
+
+	function save() {
+		if (g_lock){
+			return;
+		}
+		g_lock = true;
+		$(".alpaca-form-button-submit").addClass("disabled");
+		$(".alpaca-form-button-submit").html("Saving...");
+
+		var data = $("#form1").alpaca().getValue();
+		console.log(JSON.stringify(data));
+
+		g_data.id = data.id;
+		g_data.checklist_school = data.contact.checklist_school;
+		g_data.checklist_contact = data.contact.checklist_contact;
+		g_data.checklist_extension = data.contact.checklist_extension;
+		g_data.checklist_email = data.contact.checklist_email;
+		g_data.checklist1 = data.checklist_all.checklist1;
+		g_data.checklist2 = data.checklist_all.checklist2;
+		g_data.checklist3 = data.checklist_all.checklist3;
+		g_data.checklist4 = data.checklist_all.checklist4;
+		g_data.checklist5 = data.checklist_all.checklist5;
+		g_data.checklist6 = data.checklist_all.checklist6;
+		g_data.checklist7 = data.checklist_all.checklist7;
+		g_data.checklist8 = data.checklist_new.checklist8;
+
+
+		// Replace undefined values with empty string
+		for (var variable in g_data) {
+			if (g_data.hasOwnProperty(variable)) {
+				if (typeof g_data[variable] === 'undefined') {
+					g_data[variable] = "";
+				}
+			}
+		}
+
+		console.log(g_data);
+
+		$.ajax({
+			url: '{{ urlFor('/variation/put/section4-1', { "variation_id" : variation_id }) }}',
+			dataType: 'text',
+			data: {data : JSON.stringify(g_data)},
+			type: 'POST',
+			success: function(data){
+				console.log(data);
+				if (data=="success") {
+					//$('html, body').animate({scrollTop: $("body").offset().top},200);
+					$('#submitted').hide();
+					$('#submitted').fadeIn(1000);
+					setTimeout(function() {
+						$('#submitted').fadeOut(2000);
+					}, 2000);
+					pull_data();
+					g_has_changed = false;
+				} else {
+					alert("Error: Could not save.\nMessage: " + data);
+				}
+				$(".alpaca-form-button-submit").removeClass("disabled");
+				$(".alpaca-form-button-submit").html("Save");
+				g_lock = false;
+			}
+		});
+	}
+</script>
+{% endblock %}
+
+{% block css %}
+<style media="screen">
+	#submitted {
+		position: fixed;
+		top: 75px;
+		right: 50px;
+		width: 200px;
+	}
+
+	.class_table, .class_table td, .class_table th {
+		border: 1px solid black
+	}
+
+	.class_table th:first-child {
+		width: 120px;
+	}
+
+	.class_table td, .class_table th {
+		padding: 5px;
+	}
+
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Section 4: Checklist and Approvals</h1>
+{{ include('variation/edit/_tabs.twig') }}
+<div style="text-align: left;">
+<br>
+<div id='submitted' hidden><div class="alert alert-success" role="alert">Data Saved <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></div></div>
+
+<div id="form1"></div>
+
+</div>
+
+{% endblock %}

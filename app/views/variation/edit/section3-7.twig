@@ -1,0 +1,319 @@
+{% extends "layouts/master.twig" %}
+
+{% block js %}
+<script>
+	var g_data = null;
+	var g_lock = false;
+	var g_has_changed = false;
+
+	window.onbeforeunload = function(event) {
+		if (g_has_changed)
+	    	return "You have unsaved changes. Are you sure you want to navigate away?";
+	};
+
+	$(document).ready(function(){
+		pull_data();
+	});
+
+	function pull_data() {
+		$.ajax({
+			url: '{{ urlFor('/variation/get/section3-7', { "variation_id" : variation_id }) }}',
+			method: "GET",
+			dataType: "text",
+			success: function(result) {
+				if (result != null && result != "0 results") {
+					g_data = JSON.parse(result);
+					populate_form(format_data_for_form(g_data));
+					console.log(g_data);
+				}
+			}
+		});
+	}
+
+	function format_data_for_form(data) {
+		var result = {
+			"id": data.id,
+		    "d37": {
+				"admin_school": data.admin_school,
+				"admin_contact": data.admin_contact,
+				"admin_extension": data.admin_extension,
+				"admin_email": data.admin_email,
+			},
+		    "d38": data.responsible_schools
+		};
+		return result;
+	}
+
+	function populate_form(data) {
+		$("#form1").html("");
+		$("#form1").alpaca({
+			"data": data,
+			"schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"title": "ID"
+					},
+					"d37": {
+						"title": "D3.7 Unit coordinator",
+						"type": "object",
+						"properties": {
+							"admin_school": {
+								"title": "School",
+								"type": "string",
+								"enum": {{ schools|json_encode|raw }}
+							},
+							"admin_contact": {
+								"title": "Contact Person",
+								"type": "string"
+							},
+							"admin_extension": {
+								"title": "Extension",
+								"type": "string"
+							},
+							"admin_email": {
+								"title": "Email Address",
+								"type": "string",
+								"format": "email"
+							},
+						}
+					},
+					"d38": {
+						"title": "D3.8 Schools responsible for teaching the Unit",
+						"type": "array",
+						"items": {
+							"type": "object",
+							"properties": {
+								"id": {
+									"type": "string",
+									"title": "ID"
+								},
+								"school": {
+									"type": "string",
+									"title": "School Name",
+									"enum": {{ schools|json_encode|raw }}
+								},
+								"percent": {
+									"type": "number",
+									"title": "% Teaching",
+								},
+								"contact": {
+									"type": "string",
+									"title": "Contact Person"
+								},
+								"extension": {
+									"type": "string",
+									"title": "Contact Extension"
+								},
+								"email": {
+									"type": "string",
+									"title": "Contact Email"
+								}
+							}
+						}
+					}
+				}
+			},
+			"toolbarSticky": true,
+			"options": {
+				"events": {
+                    "change": function() {
+						g_has_changed = true;
+                        console.log("Change");
+                    }
+				},
+				"fields": {
+					"id": {
+						"type": "hidden"
+					},
+					"d37": {
+						"helpers": [
+							"Please list ONE staff member who will have overall responsibility for administration of the Unit.  If other Schools will be responsible for teaching the Unit, please complete Question 3.8."
+						]
+					},
+					"d38": {
+						"helpers": [
+							"Please list all Schools that will be responsible for teaching the Unit. Inlcude the main contact for each of the Schools, excluding the Owning School contact, who should be listed at question 3.7.",
+							"A contact person must be provided for each school involved in teaching the Unit. You do not have to list anyone here for the Owning School, unless they are different from the person listed as the Unit Coordinator at Question 3.7, or the teaching is split between two or more schools."
+						],
+						"type": "table",
+						"items": {
+							"fields": {
+								"id": {
+									"type": "hidden"
+								},
+								"extension": {
+									"size": 1
+								},
+								"threshold": {
+		                    		"type": "select",
+		                    		"optionLabels": ["No", "Yes"]
+		                		}
+							}
+						},
+						"actionbar": {
+							 "actions": [{
+								 "action": "add",
+								 "click": function() {
+									var value = this.getValue();
+									value.push({
+									});
+									this.setValue(value);
+								}
+							 }, {
+								 "action": "remove"
+							 }, {
+								 "action": "up",
+								 "enabled": false
+							 }, {
+								 "action": "down",
+								 "enabled": false
+							 }]
+						}
+					}
+				},
+				"form": {
+				   "buttons": {
+					   "submit": {
+						   "title": "Save",
+						   "click": save
+					   }
+				   }
+			   }
+		   },
+			"postRender": function(control) {
+				$('[data-key="submit"]').addClass("btn-primary");
+				$('[data-alpaca-container-item-name="d38"]').addClass("alpaca-field-object");
+				$('[data-alpaca-container-item-name="c"]').addClass("alpaca-field-object");
+				// for (var i = 0; i < 100; i++) {
+					// $('[name="_' + i + '_number"]').width(17);
+					// $('[data-alpaca-container-item-name="_' + i + '_weight"]').width(50);
+					// $('[data-alpaca-container-item-name="_' + i + '_ulos"]').width(100);
+					// $('[data-alpaca-container-item-name="_' + i + '_threshold"]').width(80);
+					// $('[data-alpaca-container-item-name="_' + i + '_type"]').width(105);
+				// }
+				$(".actionbar").width(80);
+			}
+		});
+	}
+
+	function find_deleted(loaded, modified) {
+		var deleted = [];
+		if (loaded != null) {
+			for (var i = 0; i < loaded.length; i++) {
+				var find_id = loaded[i].id
+				var found = false;
+				for (var j = 0; j < modified.length; j++) {
+					if (modified[j].id == find_id) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					deleted.push(find_id);
+				}
+			}
+		}
+		return deleted;
+	}
+
+	function save() {
+		if (g_lock){
+			return;
+		}
+		g_lock = true;
+		$(".alpaca-form-button-submit").addClass("disabled");
+		$(".alpaca-form-button-submit").html("Saving...");
+
+		var data = $("#form1").alpaca().getValue();
+		console.log(JSON.stringify(data));
+
+		var deleted = find_deleted(g_data.responsible_schools, data.d38);
+
+		g_data.id = data.id;
+		g_data.admin_school = data.d37.admin_school;
+		g_data.admin_contact = data.d37.admin_contact;
+		g_data.admin_extension = data.d37.admin_extension;
+		g_data.admin_email = data.d37.admin_email;
+		g_data.responsible_schools = data.d38;
+
+		// Replace undefined values with empty string
+		for (var variable in g_data) {
+			if (g_data.hasOwnProperty(variable)) {
+				if (typeof g_data[variable] === 'undefined') {
+					g_data[variable] = "";
+				}
+			}
+		}
+
+		console.log(g_data);
+
+		console.log(deleted);
+
+		$.ajax({
+			url: '{{ urlFor('/variation/put/section3-7', { "variation_id" : variation_id }) }}',
+			dataType: 'text',
+			data: {data : JSON.stringify(g_data), delete : JSON.stringify(deleted)},
+			type: 'POST',
+			success: function(data){
+				console.log(data);
+				if (data=="success") {
+					//$('html, body').animate({scrollTop: $("body").offset().top},200);
+					$('#submitted').hide();
+					$('#submitted').fadeIn(1000);
+					setTimeout(function() {
+						$('#submitted').fadeOut(2000);
+					}, 2000);
+					pull_data();
+					g_has_changed = false;
+				} else {
+					alert("Error: Could not save.\nMessage: " + data);
+				}
+				$(".alpaca-form-button-submit").removeClass("disabled");
+				$(".alpaca-form-button-submit").html("Save");
+				g_lock = false;
+			}
+		});
+	}
+</script>
+{% endblock %}
+
+{% block css %}
+<style media="screen">
+	#submitted {
+		position: fixed;
+		top: 75px;
+		right: 50px;
+		width: 200px;
+	}
+
+	.class_table, .class_table td, .class_table th {
+		border: 1px solid black
+	}
+
+	.class_table th:first-child {
+		width: 120px;
+	}
+
+	.class_table td, .class_table th {
+		padding: 5px;
+	}
+
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Section 3: Administrative Details</h1>
+{{ include('variation/edit/_tabs.twig') }}
+<div style="text-align: left;">
+<br>
+<div id='submitted' hidden><div class="alert alert-success" role="alert">Data Saved <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></div></div>
+
+<div id="form1"></div>
+
+</div>
+
+{% endblock %}

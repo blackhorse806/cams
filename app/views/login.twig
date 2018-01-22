@@ -1,0 +1,35 @@
+{% extends "layouts/master.twig" %}
+
+{% block css %}
+    <style>
+        .panel {
+            width: 300px;
+            margin: auto;
+            text-align: center;
+        }
+
+        button {
+            margin: 15px;
+        }
+
+		h1 {
+			margin-bottom: 30px;
+		}
+
+    </style>
+{% endblock %}
+
+{% block content %}
+    <h1>Curriculum Approval Management System</h1>
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <form action="{{ urlFor('/login') }}" method="post">
+                <label>Username</label>
+                <input class="form-control" type="text" name="username"></input>
+                <label>Password</label>
+                <input class="form-control" type="password" name="password"></input>
+                <button class="btn btn-sml btn-primary" type="submit">Login</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}

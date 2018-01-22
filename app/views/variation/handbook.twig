@@ -1,0 +1,87 @@
+
+
+{% extends "layouts/master.twig" %}
+
+{% block css %}
+<style>
+
+	h3 {
+		line-height: 50%;
+		font-family: 'Gotham Narrow A', 'Gotham Narrow B', arial;
+		color: #990033;
+		font-size: 20px;
+		font-weight: bold;
+	}
+
+	.attribute {
+		font-family: 'Gotham Narrow A', 'Gotham Narrow B', arial;
+		font-size: 105%;
+		font-weight: bold;
+		color: #990033;
+		line-height: 180%;
+	}
+
+	th, td {
+		padding-right: 15px;
+	}
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<h1>Unit</h1>
+
+<div class="panel panel-default">
+	<div class="panel-body" style="text-align: left;">
+		<h3> {{ variation.school }} </h3>
+		<h3>{{ variation.unit_name }} </h3>
+		<span class='attribute'>Western Sydney University Unit Code:</span> {{ variation.unit_code }} <br>
+		<span class='attribute'>Discipline:</span> {{ variation.discipline_code }} <br>
+		<span class='attribute'>Level:</span> {{ variation.unit_level }} <br>
+		<span class='attribute'>Credit Points:</span> {{ variation.credit_points }} <br>
+		<span class='attribute'>Unit Coordinator:</span><br> {{ variation.admin_contact }} <br>
+		<span class='attribute'>Assumed Knowledge:</span><br> {{ variation.assumed_knowledge|nl2br }}
+		<hr>
+		<span class='attribute'>Equivalent Units</span><br>
+		{% for unit in equivalent %}
+			{{ unit.unit_code }} - {{ unit.unit_name }}<br>
+		{% endfor %}
+		<br>
+		<span class='attribute'>Prerequisite</span><br>
+		{% for unit in prerequisite %}
+			{{ unit.unit_code }} - {{ unit.unit_name }}<br>
+		{% endfor %}
+		<hr>
+		<span class='attribute'>Teaching Periods</span><br>
+		<table>
+			<tr><th>Period</th><th>Offered</th><th>Campus</th><th>Contact</th><th>Timetable</th></tr>
+		{% for unit in offerings %}
+			<tr>
+				<td>- {{ unit.session }}</td>
+				<td>-</td>
+				<td>{{ unit.location }} ({{ unit.unit_class|replace({'D': 'Day'}) }})</td>
+				<td>See Coordinator above</td>
+				<td>Timetable not yet available</td>
+			</tr>
+		{% endfor %}
+		</table>
+		<hr>
+		{{ variation.handbook_summary }}
+		<hr>
+		<span class='attribute'>Courses</span><br>
+		{% for course in courses %}
+			{{ course.course_code }} -
+			{{ course.course_title }} <br>
+		{% endfor %}
+		<hr>
+		<span class='attribute'>Specialisations</span><br>
+		{% for specialisation in accreditation %}
+			{{ specialisation.code }}
+			{{ specialisation.title }} <br>
+		{% endfor %}
+	</div>
+</div>
+
+
+{% endblock %}

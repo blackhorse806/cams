@@ -1,0 +1,332 @@
+{% extends "layouts/master.twig" %}
+
+{% block js %}
+<script>
+	var g_data = null;
+	var g_lock = false;
+	var g_has_changed = false;
+
+	window.onbeforeunload = function(event) {
+		if (g_has_changed)
+	    	return "You have unsaved changes. Are you sure you want to navigate away?";
+	};
+
+	$(document).ready(function(){
+		pull_data();
+	});
+
+	function pull_data() {
+		$.ajax({
+			url: '{{ urlFor('/variation/get/section4-2', { "variation_id" : variation_id }) }}',
+			method: "GET",
+			dataType: "text",
+			success: function(result) {
+				if (result != null && result != "0 results") {
+					g_data = JSON.parse(result);
+					populate_form(format_data_for_form(g_data));
+					console.log(g_data);
+				}
+			}
+		});
+	}
+
+	function format_data_for_form(data) {
+		var result = {
+			"id": data.id,
+		    "level1": {
+				"deans_school": data.deans_school,
+                "deans_acting": data.deans_acting,
+				"deans_name": data.deans_name,
+				"deans_endorsement_date": data.deans_endorsement_date,
+				"deans_trim_ref": data.deans_trim_ref,
+			},
+			"level2": {
+                "sac_acting": data.sac_acting,
+				"sac_name": data.sac_name,
+				"sac_meeting_date": data.sac_meeting_date,
+				"sac_trim_ref": data.sac_trim_ref,
+			},
+			"level3": {
+				"apcac_name": data.apcac_name,
+				"apcac_meeting_date": data.apcac_meeting_date,
+				"apcac_trim_ref": data.apcac_trim_ref,
+			},
+		};
+		return result;
+	}
+
+	function populate_form(data) {
+		$("#form1").html("");
+		$("#form1").alpaca({
+			"data": data,
+			"schema": {
+				"title": "D4.2 Record of approvals",
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"title": "ID"
+					},
+					"level1": {
+						"title": "Level 1: Dean of School",
+						"type": "object",
+						"properties": {
+							"deans_school": {
+								"title": "School Name",
+								"type": "string",
+								"enum": {{ schools|json_encode|raw }},
+							},
+                            "deans_acting": {
+								"title": "Acting Dean?",
+								"type": "string",
+                                "enum": ["0", "1"]
+							},
+							"deans_name": {
+								"title": "Dean's Name",
+								"type": "string"
+							},
+							"deans_endorsement_date": {
+								"title": "Date of Endorsement",
+								"type": "string",
+								"format": "date"
+							},
+							"deans_trim_ref": {
+								"title": "Evidence of endorsement/approval (TRIM reference)",
+								"type": "string"
+							},
+						}
+					},
+					"level2": {
+						"title": "Level 2: School Academic Committee",
+						"type": "object",
+						"properties": {
+                            "sac_acting": {
+								"title": "Acting Dean?",
+								"type": "string",
+                                "enum": ["0", "1"]
+							},
+							"sac_name": {
+								"title": "Name of Chair",
+								"type": "string"
+							},
+							"sac_meeting_date": {
+								"title": "Date of Meeting",
+								"type": "string",
+								"format": "date"
+							},
+							"sac_trim_ref": {
+								"title": "Evidence of endorsement/approval by SAC/Other School Endorsement (TRIM reference)",
+								"type": "string"
+							},
+						}
+					},
+					"level3": {
+						"title": "Level 3: Academic Planning and Course Approvals Committee",
+						"type": "object",
+						"properties": {
+							"apcac_name": {
+								"title": "Name of Chair",
+								"type": "string"
+							},
+							"apcac_meeting_date": {
+								"title": "Date of Meeting",
+								"type": "string",
+								"format": "date"
+							},
+							"apcac_trim_ref": {
+								"title": "Evidence of approval",
+								"type": "string"
+							},
+						}
+					}
+				}
+			},
+			"toolbarSticky": true,
+			"options": {
+				"events": {
+                    "change": function() {
+						g_has_changed = true;
+                        console.log("Change");
+                    }
+				},
+				"fields": {
+					"id": {
+						"type": "hidden"
+					},
+					"level1": {
+						"fields": {
+							"deans_school": {
+								"type": "select",
+							},
+                            "deans_acting": {
+	                    		"type": "select",
+	                    		"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+	                		},
+							"deans_endorsement_date": {
+								"type": "date",
+        						"dateFormat": "DD/MM/YYYY",
+							}
+						}
+					},
+					"level2": {
+						"fields": {
+                            "sac_acting": {
+	                    		"type": "select",
+	                    		"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+	                		},
+							"sac_meeting_date": {
+								"type": "date",
+								"dateFormat": "DD/MM/YYYY",
+							}
+						}
+					},
+					"level3": {
+						"fields": {
+							"apcac_meeting_date": {
+								"type": "date",
+								"dateFormat": "DD/MM/YYYY",
+							}
+						}
+					},
+				},
+				"form": {
+				   "buttons": {
+					   "submit": {
+						   "title": "Save",
+						   "click": save
+					   }
+				   }
+			   }
+		   },
+			"postRender": function(control) {
+				$('[data-key="submit"]').addClass("btn-primary");
+			}
+		});
+	}
+
+	function find_deleted(loaded, modified) {
+		var deleted = [];
+		if (loaded != null) {
+			for (var i = 0; i < loaded.length; i++) {
+				var find_id = loaded[i].id
+				var found = false;
+				for (var j = 0; j < modified.length; j++) {
+					if (modified[j].id == find_id) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					deleted.push(find_id);
+				}
+			}
+		}
+		return deleted;
+	}
+
+	function save() {
+		if (g_lock){
+			return;
+		}
+		g_lock = true;
+		$(".alpaca-form-button-submit").addClass("disabled");
+		$(".alpaca-form-button-submit").html("Saving...");
+
+		var data = $("#form1").alpaca().getValue();
+		console.log(JSON.stringify(data));
+
+		g_data.id = data.id;
+		g_data.deans_school = data.level1.deans_school;
+        g_data.deans_acting = data.level1.deans_acting;
+		g_data.deans_name = data.level1.deans_name;
+		g_data.deans_endorsement_date = data.level1.deans_endorsement_date;
+		g_data.deans_trim_ref = data.level1.deans_trim_ref;
+
+        g_data.sac_acting = data.level2.sac_acting;
+		g_data.sac_name = data.level2.sac_name;
+		g_data.sac_meeting_date = data.level2.sac_meeting_date;
+		g_data.sac_trim_ref = data.level2.sac_trim_ref;
+
+		g_data.apcac_name = data.level3.apcac_name;
+		g_data.apcac_meeting_date = data.level3.apcac_meeting_date;
+		g_data.apcac_trim_ref = data.level3.apcac_trim_ref;
+
+		// Replace undefined values with empty string
+		for (var variable in g_data) {
+			if (g_data.hasOwnProperty(variable)) {
+				if (typeof g_data[variable] === 'undefined') {
+					g_data[variable] = "";
+				}
+			}
+		}
+
+		console.log(g_data);
+
+		$.ajax({
+			url: '{{ urlFor('/variation/put/section4-2', { "variation_id" : variation_id }) }}',
+			dataType: 'text',
+			data: {data : JSON.stringify(g_data)},
+			type: 'POST',
+			success: function(data){
+				console.log(data);
+				if (data=="success") {
+					//$('html, body').animate({scrollTop: $("body").offset().top},200);
+					$('#submitted').hide();
+					$('#submitted').fadeIn(1000);
+					setTimeout(function() {
+						$('#submitted').fadeOut(2000);
+					}, 2000);
+					pull_data();
+					g_has_changed = false;
+				} else {
+					alert("Error: Could not save.\nMessage: " + data);
+				}
+				$(".alpaca-form-button-submit").removeClass("disabled");
+				$(".alpaca-form-button-submit").html("Save");
+				g_lock = false;
+			}
+		});
+	}
+</script>
+{% endblock %}
+
+{% block css %}
+<style media="screen">
+	#submitted {
+		position: fixed;
+		top: 75px;
+		right: 50px;
+		width: 200px;
+	}
+
+	.class_table, .class_table td, .class_table th {
+		border: 1px solid black
+	}
+
+	.class_table th:first-child {
+		width: 120px;
+	}
+
+	.class_table td, .class_table th {
+		padding: 5px;
+	}
+
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Section 4: Checklist and Approvals</h1>
+{{ include('variation/edit/_tabs.twig') }}
+<div style="text-align: left;">
+<br>
+<div id='submitted' hidden><div class="alert alert-success" role="alert">Data Saved <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></div></div>
+
+<div id="form1"></div>
+
+</div>
+
+{% endblock %}

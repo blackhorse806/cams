@@ -1,0 +1,529 @@
+{% extends "layouts/master.twig" %}
+
+{% block js %}
+<script>
+	var g_data = null;
+	var g_lock = false;
+	var g_has_changed = false;
+
+	window.onbeforeunload = function(event) {
+		if (g_has_changed)
+	    	return "You have unsaved changes. Are you sure you want to navigate away?";
+	};
+
+	$(document).ready(function(){
+		pull_data();
+	});
+
+	function pull_data() {
+		$.ajax({
+			url: '{{ urlFor('/variation/get/section2-13', { "variation_id" : variation_id }) }}',
+			method: "GET",
+			dataType: "text",
+			success: function(result) {
+				if (result != null && result != "0 results") {
+					g_data = JSON.parse(result);
+					console.log(g_data);
+					for (var variable in g_data) {
+						if (g_data.hasOwnProperty(variable)) {
+							if (variable != 'id' && variable != 'unit_id' && variable != 'supervision_quality' && variable != 'wei_hours_week' && variable != 'wei_total_hours') {
+								if (g_data[variable] == "1") {
+									g_data[variable] = true;
+								} else if(g_data[variable] == "0") {
+									g_data[variable] = false;
+								}
+							}
+							console.log(variable + ": " + g_data[variable]);
+						}
+					}
+					if (g_data != null) {
+						populate_form(format_data_for_form(g_data));
+					} else {
+						g_data = {};
+						populate_form();
+					}
+				}
+			}
+		});
+	}
+
+	function format_data_for_form(original) {
+
+		for (var variable in original) {
+			if (original.hasOwnProperty(variable)) {
+
+				if (original[variable] === false) {
+					original[variable] = "0";
+				} else if (original[variable] === true) {
+					original[variable] = "1";
+				}
+			}
+		}
+
+
+		var data = {
+			"id": original.id,
+			"a": {
+				"service_learning": original.service_learning,
+				"industry_projects": original.industry_projects,
+				"placement_observational": original.placement_observational,
+				"placement_experiential": original.placement_experiential,
+				"structured_practicum": original.structured_practicum,
+				"preparatory_components": original.preparatory_components
+			},
+			"b": {
+				"supervision_quality": original.supervision_quality
+			},
+			"c": {
+				"capture_placement": original.capture_placement
+			},
+			"d": {
+				"wei_include_experience": original.wei_include_experience,
+				"wei_course_relevant": original.wei_course_relevant,
+				"hours": {
+					"wei_hours_week": original.wei_hours_week,
+					"wei_total_hours": original.wei_total_hours
+				},
+				"wei_student_input_contact": original.wei_student_input_contact,
+				"wei_student_oversight": original.wei_student_oversight,
+				"wei_content_objectives": original.wei_content_objectives,
+				"wei_student_performance": original.wei_student_performance,
+				"wei_performance_management": original.wei_performance_management,
+				"wei_site_interaction": original.wei_site_interaction,
+				"wei_placement_organisation": original.wei_placement_organisation,
+				"wei_student_monitoring": original.wei_student_monitoring,
+				"wei_student_assessment": original.wei_student_assessment
+			}
+		}
+		console.log(data);
+		return data;
+	}
+
+
+	function populate_form(data) {
+		$("#form1").html("");
+		$("#form1").alpaca({
+			"data": data,
+			"schema": {
+				"title": "D2.13 Work Integrated Learning (WIL)",
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"title": "ID"
+					},
+					"a": {
+						"title": "a. If this unit involves Work Integrated Learning, please indicate all of the types below which apply.",
+						"type": "object",
+						"properties": {
+							"service_learning": {
+								"type": "string",
+								"title": "Service Learning",
+								"enum": ["0", "1"]
+							},
+							"industry_projects": {
+								"type": "string",
+								"title": "ii) Industry Projects",
+								"enum": ["0", "1"]
+							},
+							"placement_observational": {
+								"type": "string",
+								"title": "iii) Work Placement – Observational",
+								"enum": ["0", "1"]
+							},
+							"placement_experiential": {
+								"type": "string",
+								"title": "iv) Work Placement – Experiential",
+								"enum": ["0", "1"]
+							},
+							"structured_practicum": {
+								"type": "string",
+								"title": "v) Structured Practicum",
+								"enum": ["0", "1"]
+							},
+							"preparatory_components": {
+								"type": "string",
+								"title": "vi) Preparatory WIL components",
+								"enum": ["0", "1"]
+							}
+						}
+					},
+					"b": {
+						"title": "b. Please provide details on how the quality of supervision of the student will be ensured while in the workplace",
+						"type": "object",
+						"properties": {
+							"supervision_quality": {
+								"type": "string",
+								"title": ""
+							}
+						}
+					},
+					"c": {
+						"title": "c. Placement",
+						"type": "object",
+						"properties": {
+							"capture_placement": {
+								"type": "string",
+								"title": "Is this unit required to be captured in the Corporate Placement System (InPlace)?",
+								"enum": ["0", "1"]
+							}
+						}
+					},
+					"d": {
+						"title": "d. Work Experience in Industry (WEI)",
+						"type": "object",
+						"properties": {
+							"wei_include_experience": {
+								"type": "string",
+								"title": "i)	Does this unit include a work experience component? If no, go to Question D2.14",
+								"enum": ["0", "1"]
+							},
+							"wei_course_relevant": {
+								"type": "string",
+								"title": "ii)	Is the work experience relevant to the course of study? If no, go to Question D2.14",
+								"enum": ["0", "1"]
+							},
+							"hours": {
+								"type": "object",
+								"properties": {
+									"wei_hours_week": {
+										"type": "string",
+										"title": "If you have answered yes to Questions (i) and (ii) above, please provide the following details:<br>Hours/Week"
+									},
+									"wei_total_hours": {
+										"type": "string",
+										"title": "Total Hours Required"
+									}
+								}
+							},
+							"wei_student_input_contact": {
+								"type": "string",
+								"title": "iii) ongoing and regular input and contact with students;",
+								"enum": ["0", "1"]
+							},
+							"wei_student_oversight": {
+								"type": "string",
+								"title": "iv) oversight and direction of work occurring during its performance, not just the progress of a student’s work;",
+								"enum": ["0", "1"]
+							},
+							"wei_content_objectives": {
+								"type": "string",
+								"title": "v) definition and management of the implementation of educational content and objectives of the unit;",
+								"enum": ["0", "1"]
+							},
+							"wei_student_performance": {
+								"type": "string",
+								"title": "vi) definition and management of assessment of student learning and performance during the placement; and",
+								"enum": ["0", "1"]
+							},
+							"wei_performance_management": {
+								"type": "string",
+								"title": "vii) definition and management of the standard of learning and performance to be achieved by the student during the placement.",
+								"enum": ["0", "1"]
+							},
+							"wei_site_interaction": {
+								"type": "string",
+								"title": "<p>If you answered Yes to all of the above Questions (iii) to (vii), the unit is not considered to be a WEI unit that is reportable to the Government. Please go to Question D2.14.</p><p>If you answered No to any of the above Questions (i) to (vii), please indicate whether the following are undertaken by staff of the University:</p><br>viii) interaction between the work-based supervisor and the student, which may include site visits;",
+								"enum": ["0", "1"]
+							},
+							"wei_placement_organisation": {
+								"type": "string",
+								"title": "ix) organisation of student placements;",
+								"enum": ["0", "1"]
+							},
+							"wei_student_monitoring": {
+								"type": "string",
+								"title": "x) ongoing monitoring of student work and progress;",
+								"enum": ["0", "1"]
+							},
+							"wei_student_assessment": {
+								"type": "string",
+								"title": "xi) assessment of student learning and performance during the placement",
+								"enum": ["0", "1"]
+							}
+						}
+					}
+				}
+			},
+			"options": {
+				"events": {
+                    "change": function() {
+						g_has_changed = true;
+                        console.log("Change");
+                    }
+				},
+				"helpers": [
+					"WIL refers to a range of approaches and strategies that involve using the workplace and community as a site and/or source for learning. As a site, students undertake a work/community related project or placement in a work/ community environment as part of their course. As a source, students engage with work, work-like and community experiences to learn about the professional work, the community, possible careers and themselves.",
+					"Note: Cadetship, internship, placement, practicum or equivalent types of WIL can be categorised as Work placement-observational, Work placement-experiential, or Structured practicum depending on the nature of the experience planned for the students.",
+				],
+				"fields": {
+					"id": {
+						"hidden": true
+					},
+					"a": {
+						"fields": {
+							"service_learning": {
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+								"type": "select",
+								"helpers": [
+									"Involves students engaging in not-for-profit or philanthropic activities/projects with a community partner to experience WIL and civic engagement. Service Learning reflects the twin dynamics of experiential learning and service to the community."
+								]
+							},
+							"industry_projects": {
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+								"type": "select",
+								"helpers": [
+									"Involves students engaging in projects as individuals or within a team to meet the needs of the industry. These projects require students to integrate their multiple aspects of learning with the practice of work in addressing the industry’s needs. Examples may include: Capstone projects, Industry-driven research projects, or projects for internal/external clients."
+								]
+							},
+							"placement_observational": {
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+								"type": "select",
+								"helpers": [
+									"Requires students to be physically attending a professional workplace for a substantial period of time, observe everyday practice of the profession and learn from reflecting on that experience."
+								]
+							},
+							"placement_experiential": {
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+								"type": "select",
+								"helpers": [
+									"Is a direct work experience where students perform everyday practice in the professional workplace and learn from reflecting on that experience."
+								]
+							},
+							"structured_practicum": {
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+								"type": "select",
+								"helpers": [
+									"Requires students to perform a prescribed list of professional activities in the professional workplace and achieve competencies that are determined by professional or industry bodies."
+								]
+							},
+							"preparatory_components": {
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+								"type": "select",
+								"helpers": [
+									"Incorporated into the unit to prepare students for later WIL experience, including Simulations (Moot court, Business case, Objective Structured Clinical Examination), Industry/Community guest lectures, Site visits or Field trips."
+								]
+							}
+						}
+					},
+					"b": {
+						"fields": {
+							"supervision_quality": {
+								"type": "textarea"
+							}
+						}
+					},
+					"c": {
+						"fields": {
+							"capture_placement": {
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+								"type": "select",
+								"helpers": [
+									"Placement means a unit, unit component or other activity, required as part of a unit or program of study, that gives students unpaid practical experience in the application of theoretical concepts and knowledge in a work environment. For example, clinical practice, practicum, internship, professional placement, industrial experience, or work experience, including Work Experience in Industry"
+								]
+							}
+						}
+					},
+					"d": {
+						"helpers": [
+							"Note: This information is being requested to meet the University’s government reporting obligations.",
+							"WEI units are those which comprise totally of work:<ul class='help-block'><li>that is done as a part of, or in connection with, a course of study undertaken with Western Sydney University; and</li><li>the purpose of which is to obtain work experience relevant to the course of study; and</li><li>in respect of which student learning and performance is not directed by the University.</li></ul>",
+							"[HESA Schedule 1]. Learning and performance is not directed by the University unless all of the following are performed by staff of the University or by persons engaged by the University:<ul class='help-block'><li>ongoing and regular input and contact with students;</li><li>oversight and direction of work occurring during performance of the work, not just the progress of a student’s work;</li><li>definition and management of the implementation of educational content and objectives of the unit;</li><li>definition and management of assessment of student learning and performance during the placement; and</li><li>definition and management of the standard of learning and performance to be achieved by the student during the placement. [Ref: Higher Education Providers: Administrative Information for Providers (AIP)].</li></ul>"
+						],
+						"fields": {
+							"wei_include_experience": {
+								"type": "select",
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+							},
+							"wei_course_relevant": {
+								"type": "select",
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+							},
+							"wei_student_input_contact": {
+								"type": "select",
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+							},
+							"wei_student_oversight": {
+								"type": "select",
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+							},
+							"wei_content_objectives": {
+								"type": "select",
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+							},
+							"wei_student_performance": {
+								"type": "select",
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+							},
+							"wei_performance_management": {
+								"type": "select",
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+							},
+							"wei_site_interaction": {
+								"type": "select",
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+							},
+							"wei_placement_organisation": {
+								"type": "select",
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+							},
+							"wei_student_monitoring": {
+								"type": "select",
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+							},
+							"wei_student_assessment": {
+								"type": "select",
+								"optionLabels": ["No", "Yes"],
+								"removeDefaultNone": true,
+							},
+							"hours": {
+								"fields": {
+									"wei_hours_week": {
+										"helpers": [
+											"International students must register all paid or unpaid work."
+										]
+									}
+								}
+							}
+						}
+					}
+				},
+				"form": {
+				   "buttons": {
+					   "submit": {
+						   "title": "Save",
+						   "click": save
+					   }
+				   }
+			   }
+		   },
+			"postRender": function(control) {
+				$('[data-key="submit"]').addClass("btn-primary");
+				$(".actionbar").width(140);
+			}
+		});
+	}
+
+	function save() {
+		if (g_lock){
+			return;
+		}
+		g_lock = true;
+		$(".alpaca-form-button-submit").addClass("disabled");
+		$(".alpaca-form-button-submit").html("Saving...");
+
+		var data = $("#form1").alpaca().getValue();
+
+		for (var variable in g_data) {
+			if (g_data.hasOwnProperty(variable)) {
+				if (data.hasOwnProperty(variable)) {
+					g_data[variable] = data[variable];
+				}
+				else if (data.a.hasOwnProperty(variable)) {
+					g_data[variable] = data.a[variable];
+				}
+				else if (data.b.hasOwnProperty(variable)) {
+					g_data[variable] = data.b[variable];
+				}
+				else if (data.c.hasOwnProperty(variable)) {
+					g_data[variable] = data.c[variable];
+				}
+				else if (data.d.hasOwnProperty(variable)) {
+					g_data[variable] = data.d[variable];
+				}
+				else if (data.d.hours.hasOwnProperty(variable)) {
+					g_data[variable] = data.d.hours[variable];
+				}
+			}
+		}
+		if (!data.b.hasOwnProperty('supervision_quality')) {
+			g_data.supervision_quality = "";
+		}
+		if (!data.d.hours.hasOwnProperty('wei_hours_week')) {
+			g_data.wei_hours_week = "";
+		}
+		if (!data.d.hours.hasOwnProperty('wei_total_hours')) {
+			g_data.wei_total_hours = "";
+		}
+
+
+		for (var variable in g_data) {
+			if (g_data.hasOwnProperty(variable)) {
+				if (variable != 'id' && variable != 'unit_id' && variable != 'supervision_quality' && variable != 'wei_hours_week' && variable != 'wei_total_hours') {
+					if (g_data[variable] == true) {
+						g_data[variable] = "1";
+					} else if(g_data[variable] == false) {
+						g_data[variable] = "0";
+					}
+				}
+				console.log(variable + ": " + g_data[variable]);
+			}
+		}
+
+		$.ajax({
+			url: '{{ urlFor('/variation/put/section2-13', { "variation_id" : variation_id }) }}',
+			dataType: 'text',
+			data: {data : JSON.stringify(g_data)},
+			type: 'POST',
+			success: function(data){
+				console.log(data);
+				if (data=="success") {
+					$('html, body').animate({scrollTop: $("body").offset().top},200);
+					$('#submitted').hide();
+					$('#submitted').fadeIn(1000);
+					setTimeout(function() {
+						$('#submitted').fadeOut(2000);
+					}, 2000);
+					pull_data();
+					g_has_changed = false;
+				} else {
+					alert("Error: Could not save.\nMessage: " + data);
+				}
+				$(".alpaca-form-button-submit").removeClass("disabled");
+				$(".alpaca-form-button-submit").html("Save");
+				g_lock = false;
+			}
+		});
+	}
+</script>
+{% endblock %}
+
+{% block css %}
+<style media="screen">
+	#submitted {
+		position: fixed;
+		top: 75px;
+		right: 50px;
+		width: 200px;
+	}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<h1>Section 2: Academic Details</h1>
+{{ include('variation/edit/_tabs.twig') }}
+<div style="text-align: left;">
+<br>
+<div id='submitted' hidden><div class="alert alert-success" role="alert">Data Saved <span class="glyphicon glyphicon-ok" aria-hidden="true"></span></div></div>
+
+<div id="form1"></div>
+</div>
+{% endblock %}
