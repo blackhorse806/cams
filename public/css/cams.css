@@ -1,0 +1,32 @@
+
+#current_variations {
+    margin-top: 20px;
+    border: 1px solid grey;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+#current_variations table {
+    border-collapse: collapse;
+}
+
+#current_variations table, #current_variations td, #current_variations th {
+    border: 1px solid black;
+}
+
+#current_variations table td, #current_variations table th {
+    padding: 5px;
+}
+
+.tab-hr {
+	margin: 10px;
+}
+
+body {
+  padding-top: 50px;
+  font-family: Calibri;
+}
+.starter-template {
+  padding: 40px 15px;
+  text-align: center;
+}
